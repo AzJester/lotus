@@ -1,0 +1,145 @@
+/* ==========================================================================
+   Workspace — colored tabbed pages of database tiles on teal felt.
+   ========================================================================== */
+
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Tabs across the top of the workspace */
+.ws-tabs {
+  display: flex;
+  align-items: flex-end;
+  height: 26px;
+  padding: 4px 0 0 6px;
+  background: var(--teal-dark);
+  flex: 0 0 auto;
+}
+.ws-tab {
+  --tab-color: #888;
+  height: 22px;
+  padding: 0 16px;
+  margin-right: 3px;
+  font-size: var(--fs);
+  font-weight: bold;
+  color: #f4f2ea;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tab-color) 75%, #000), var(--tab-color));
+  border-top: 1px solid color-mix(in srgb, var(--tab-color) 50%, #fff);
+  border-left: 1px solid color-mix(in srgb, var(--tab-color) 50%, #fff);
+  border-right: 1px solid #000;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+.ws-tab.active {
+  height: 24px;
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tab-color) 55%, #fff), var(--tab-color));
+}
+.ws-tabs-fill {
+  flex: 1;
+}
+
+/* Felt area */
+.ws-felt {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 4px),
+    radial-gradient(circle at 30% 20%, #2a8585, #1f7a7a 40%, #145555 100%);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+}
+.ws-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-content: flex-start;
+}
+
+/* Database tile (classic raised Notes DB icon) */
+.db-tile {
+  display: flex;
+  gap: 8px;
+  width: 230px;
+  padding: 8px;
+  background: linear-gradient(180deg, #e9e6df, #d2cec5);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 2px solid #2a2a2a;
+  border-bottom: 2px solid #2a2a2a;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.35);
+}
+.db-tile.selected {
+  outline: 2px dotted #fff;
+  outline-offset: -1px;
+  background: linear-gradient(180deg, #f4f2ec, #ddd9cf);
+}
+.db-icon {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  color: #fff;
+  box-shadow: inset -2px -3px 5px rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(255, 255, 255, 0.4),
+    1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+.db-glyph {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.4));
+}
+.db-unread {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--unread);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fff;
+}
+.db-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.db-title {
+  font-weight: bold;
+  font-size: var(--fs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-server {
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+}
+.db-count {
+  margin-top: 3px;
+  font-size: var(--fs-sm);
+  color: #2a6a2a;
+}
+
+.ws-hint {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  font-size: var(--fs-sm);
+  color: #1f4f3f;
+  background: var(--window);
+  border-top: 1px solid var(--shadow);
+}

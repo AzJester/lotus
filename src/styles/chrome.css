@@ -1,0 +1,376 @@
+/* ==========================================================================
+   Lotus Notes — application chrome
+   The faux-OS window: title bar, menu bar, SmartIcons toolbar, the left
+   bookmark bar, window tabs, content area and status bar.
+   ========================================================================== */
+
+.notes-window {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--face);
+  border: 1px solid var(--shadow-dark);
+  overflow: hidden;
+}
+
+/* --- Title bar ---------------------------------------------------------- */
+.titlebar {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 2px 0 5px;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    var(--notes-blue-grad-a) 0%,
+    var(--notes-blue) 8%,
+    var(--notes-blue-grad-b) 92%,
+    #1a52a8 100%
+  );
+  flex: 0 0 auto;
+  user-select: none;
+}
+.titlebar-logo {
+  display: inline-flex;
+  gap: 1px;
+  margin-right: 6px;
+}
+.titlebar-logo i {
+  width: 5px;
+  height: 12px;
+  display: inline-block;
+  transform: skewX(-12deg);
+}
+.titlebar-title {
+  font-weight: bold;
+  font-size: var(--fs);
+  letter-spacing: 0.2px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+.titlebar-spacer {
+  flex: 1;
+}
+.titlebar-btns {
+  display: flex;
+  gap: 2px;
+}
+.titlebar-btn {
+  width: 21px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+}
+.titlebar-btn:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+}
+.titlebar-btn.close {
+  font-family: var(--font-ui);
+}
+
+/* --- Menu bar ----------------------------------------------------------- */
+.menubar {
+  display: flex;
+  align-items: stretch;
+  height: 21px;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow);
+  box-shadow: 0 1px 0 var(--hl);
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 50;
+}
+.menu-item {
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  font-size: var(--fs);
+}
+.menu-item:hover,
+.menu-item.open {
+  background: var(--sel);
+  color: #fff;
+}
+.menu-popup {
+  position: absolute;
+  top: 21px;
+  min-width: 190px;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35), inset -1px -1px 0 var(--shadow);
+  padding: 2px;
+  z-index: 100;
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 3px 22px 3px 24px;
+  font-size: var(--fs);
+  position: relative;
+}
+.menu-row:hover:not(.disabled) {
+  background: var(--sel);
+  color: #fff;
+}
+.menu-row.disabled {
+  color: var(--shadow);
+}
+.menu-row .accel {
+  color: inherit;
+  opacity: 0.75;
+  font-size: var(--fs-sm);
+}
+.menu-sep {
+  height: 0;
+  border-top: 1px solid var(--shadow);
+  border-bottom: 1px solid var(--hl);
+  margin: 3px 2px;
+}
+
+/* --- SmartIcons toolbar ------------------------------------------------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  height: 27px;
+  padding: 1px 4px;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow);
+  box-shadow: 0 1px 0 var(--hl);
+  flex: 0 0 auto;
+}
+.tool-btn {
+  width: 23px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  background: var(--face);
+  border: 1px solid transparent;
+}
+.tool-btn:hover {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+}
+.tool-btn:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+}
+.tool-sep {
+  width: 0;
+  height: 18px;
+  border-left: 1px solid var(--shadow);
+  border-right: 1px solid var(--hl);
+  margin: 0 3px;
+}
+.toolbar .addr {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+}
+.toolbar .addr label {
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+}
+.toolbar .addr input {
+  flex: 1;
+  max-width: 360px;
+  height: 19px;
+}
+
+/* --- Body: bookmark bar + workpane -------------------------------------- */
+.notes-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.bookmark-bar {
+  width: 38px;
+  flex: 0 0 38px;
+  background: linear-gradient(90deg, #b9b5ac, #cdc9c0 60%, #c4c0b7);
+  border-right: 1px solid var(--shadow-dark);
+  box-shadow: inset -1px 0 0 var(--hl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 4px;
+  gap: 4px;
+}
+.bm-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  position: relative;
+}
+.bm-btn .glyph {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.25));
+}
+.bm-btn:hover {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  background: rgba(255, 255, 255, 0.25);
+}
+.bm-btn.active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+  background: rgba(0, 0, 0, 0.08);
+}
+.bm-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--unread);
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  display: grid;
+  place-items: center;
+  border: 1px solid #fff;
+}
+.bm-sep {
+  width: 24px;
+  height: 0;
+  border-top: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--hl);
+  margin: 2px 0;
+}
+
+.workpane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--window);
+}
+
+/* --- Window tabs -------------------------------------------------------- */
+.window-tabs {
+  display: flex;
+  align-items: flex-end;
+  height: 24px;
+  padding: 3px 4px 0 4px;
+  gap: 2px;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow-dark);
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.window-tabs::-webkit-scrollbar {
+  height: 0;
+}
+.wtab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  padding: 0 6px 0 8px;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  background: #c9c5bc;
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  position: relative;
+  top: 1px;
+  max-width: 160px;
+}
+.wtab .wtab-accent {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+}
+.wtab .wtab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wtab.active {
+  background: var(--window);
+  height: 23px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--window);
+  z-index: 2;
+}
+.wtab .wtab-close {
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  border-radius: 2px;
+}
+.wtab .wtab-close:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* --- Content host ------------------------------------------------------- */
+.workview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--window);
+}
+
+/* --- Status bar --------------------------------------------------------- */
+.statusbar {
+  display: flex;
+  align-items: stretch;
+  height: 22px;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+}
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-left: 1px solid var(--shadow);
+  box-shadow: inset 1px 0 0 var(--hl);
+  white-space: nowrap;
+}
+.status-cell:first-child {
+  border-left: none;
+  box-shadow: none;
+}
+.status-cell.grow {
+  flex: 1;
+}
+.status-cell .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a8a3a;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+}

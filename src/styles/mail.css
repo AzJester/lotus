@@ -1,0 +1,99 @@
+/* ==========================================================================
+   Mail module
+   ========================================================================== */
+
+.mail-list .view-head .col,
+.mail-list .view-row .col {
+  border-right: none;
+}
+
+/* Reading pane */
+.memo-reader {
+  overflow-y: auto;
+}
+.memo-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
+  border-bottom: 1px solid var(--shadow);
+}
+.memo-avatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: bold;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, #4a7fc0, #2f5fa5);
+  box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.3);
+}
+.memo-headlines {
+  flex: 1;
+  min-width: 0;
+}
+.memo-subject {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.memo-line {
+  font-size: var(--fs);
+  line-height: 1.5;
+}
+
+/* Compose */
+.compose-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--white);
+}
+.compose-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow);
+}
+.btn.primary {
+  font-weight: bold;
+  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+}
+.compose-prio {
+  font-size: var(--fs-sm);
+  display: flex;
+  align-items: center;
+}
+.compose-fields {
+  padding: 6px 10px;
+  background: #fcfbf3;
+  border-bottom: 1px solid var(--shadow);
+}
+.cf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.cf-row label {
+  flex: 0 0 60px;
+  text-align: right;
+  font-weight: bold;
+  color: var(--ink-soft);
+  font-size: var(--fs-sm);
+}
+.cf-row input {
+  flex: 1;
+}
+.compose-body {
+  flex: 1;
+  margin: 8px 10px 10px;
+}
