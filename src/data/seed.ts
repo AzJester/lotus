@@ -7,6 +7,7 @@
 
 import type {
   Contact,
+  ContactGroup,
   DiscussionPost,
   CalendarEntry,
   JournalEntry,
@@ -34,6 +35,7 @@ export interface SeedData {
   mail: MailMessage[];
   calendar: CalendarEntry[];
   contacts: Contact[];
+  contactGroups: ContactGroup[];
   todos: TodoTask[];
   journal: JournalEntry[];
   discussion: DiscussionPost[];
@@ -356,6 +358,15 @@ export function buildSeed(): SeedData {
     },
   ];
 
+  const contactGroups: ContactGroup[] = [
+    {
+      id: id("cg", 1),
+      name: "Acme Team",
+      // The Acme Corporation employees: Diane, Carl, Priya.
+      memberIds: [id("ct", 1), id("ct", 2), id("ct", 3)],
+    },
+  ];
+
   const todos: TodoTask[] = [
     {
       id: id("t", 1),
@@ -507,5 +518,5 @@ export function buildSeed(): SeedData {
     },
   ];
 
-  return { user: me, mail, calendar, contacts, todos, journal, discussion };
+  return { user: me, mail, calendar, contacts, contactGroups, todos, journal, discussion };
 }
