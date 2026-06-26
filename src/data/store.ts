@@ -9,6 +9,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   Contact,
+  ContactGroup,
   DiscussionPost,
   CalendarEntry,
   JournalEntry,
@@ -31,6 +32,7 @@ export interface NotesState {
   mail: MailMessage[];
   calendar: CalendarEntry[];
   contacts: Contact[];
+  contactGroups: ContactGroup[];
   todos: TodoTask[];
   journal: JournalEntry[];
   discussion: DiscussionPost[];
@@ -56,6 +58,11 @@ export interface NotesState {
   addContact: (c: Contact) => void;
   updateContact: (id: string, patch: Partial<Contact>) => void;
   deleteContact: (id: string) => void;
+
+  // --- contact groups (mailing lists) ---
+  addGroup: (g: ContactGroup) => void;
+  updateGroup: (id: string, patch: Partial<ContactGroup>) => void;
+  deleteGroup: (id: string) => void;
 
   // --- todos ---
   addTodo: (t: TodoTask) => void;
@@ -89,6 +96,7 @@ export const useNotes = create<NotesState>()(
       mail: seed.mail,
       calendar: seed.calendar,
       contacts: seed.contacts,
+      contactGroups: seed.contactGroups,
       todos: seed.todos,
       journal: seed.journal,
       discussion: seed.discussion,
@@ -136,7 +144,23 @@ export const useNotes = create<NotesState>()(
           contacts: s.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)),
         })),
       deleteContact: (id) =>
-        set((s) => ({ contacts: s.contacts.filter((c) => c.id !== id) })),
+        set((s) => ({
+          contacts: s.contacts.filter((c) => c.id !== id),
+          // Drop the contact from any group it belonged to.
+          contactGroups: s.contactGroups.map((g) =>
+            g.memberIds.includes(id)
+              ? { ...g, memberIds: g.memberIds.filter((m) => m !== id) }
+              : g,
+          ),
+        })),
+
+      addGroup: (g) => set((s) => ({ contactGroups: [...s.contactGroups, g] })),
+      updateGroup: (id, patch) =>
+        set((s) => ({
+          contactGroups: s.contactGroups.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+        })),
+      deleteGroup: (id) =>
+        set((s) => ({ contactGroups: s.contactGroups.filter((g) => g.id !== id) })),
 
       addTodo: (t) => set((s) => ({ todos: [...s.todos, t] })),
       updateTodo: (id, patch) =>
@@ -183,6 +207,7 @@ export const useNotes = create<NotesState>()(
           mail: fresh.mail,
           calendar: fresh.calendar,
           contacts: fresh.contacts,
+          contactGroups: fresh.contactGroups,
           todos: fresh.todos,
           journal: fresh.journal,
           discussion: fresh.discussion,
@@ -201,6 +226,7 @@ export const useNotes = create<NotesState>()(
               mail: s.mail,
               calendar: s.calendar,
               contacts: s.contacts,
+              contactGroups: s.contactGroups,
               todos: s.todos,
               journal: s.journal,
               discussion: s.discussion,
@@ -221,6 +247,7 @@ export const useNotes = create<NotesState>()(
             mail: Array.isArray(d.mail) ? d.mail : [],
             calendar: Array.isArray(d.calendar) ? d.calendar : [],
             contacts: Array.isArray(d.contacts) ? d.contacts : [],
+            contactGroups: Array.isArray(d.contactGroups) ? d.contactGroups : [],
             todos: Array.isArray(d.todos) ? d.todos : [],
             journal: Array.isArray(d.journal) ? d.journal : [],
             discussion: Array.isArray(d.discussion) ? d.discussion : [],

@@ -107,6 +107,13 @@ export interface Contact {
   comments: string;
 }
 
+/** A mailing list: a named set of contacts referenced by id. */
+export interface ContactGroup {
+  id: ID;
+  name: string;
+  memberIds: ID[];
+}
+
 // ---------------------------------------------------------------------------
 // To Do
 // ---------------------------------------------------------------------------

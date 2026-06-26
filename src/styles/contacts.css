@@ -40,6 +40,117 @@
   color: var(--ink-muted);
 }
 
+/* --- Groups navigator section ----------------------------------------- */
+.nav-groups-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-hint {
+  padding: 2px 8px 4px 26px;
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--ink-muted);
+}
+/* A group nav row carries an inline delete button revealed on hover. */
+.nav-group-item .nav-del {
+  visibility: hidden;
+}
+.nav-group-item:hover .nav-del,
+.nav-group-item.active .nav-del {
+  visibility: visible;
+}
+/* Small square button used in the Groups header (＋) and per-row (✕). */
+.nav-mini-btn {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+  padding: 0;
+  font-size: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.nav-mini-btn:hover {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow);
+  border-bottom: 1px solid var(--shadow);
+  background: rgba(255, 255, 255, 0.5);
+}
+.nav-item.active .nav-mini-btn {
+  color: #fff;
+}
+
+/* --- "Add to Group" action dropdown ----------------------------------- */
+.action-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+.dropdown-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+}
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 601;
+  min-width: 180px;
+  padding: 2px;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: var(--fs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dropdown-item:hover {
+  background: var(--sel);
+  color: #fff;
+}
+.dd-check {
+  flex: 0 0 12px;
+  text-align: center;
+  font-weight: bold;
+}
+.dd-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dd-hint {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+.dropdown-item:hover .dd-hint {
+  color: #fff;
+}
+
+/* Group summary card tweaks (preview pane). */
+.group-avatar {
+  font-size: 26px;
+  background: linear-gradient(135deg, #6f8fbf, #3a6ea5);
+}
+.group-seed-hint {
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+}
+
 /* --- Business card (preview pane) -------------------------------------- */
 .card-host {
   padding: 16px;

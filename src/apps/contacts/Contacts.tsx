@@ -6,11 +6,11 @@
 // the shared layout classes (.app, .action-bar, .app-cols, .nav-pane, …).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
-import type { Contact } from "../../data/types";
+import type { Contact, ContactGroup } from "../../data/types";
 import {
   ActionBar,
   ActionButton,
@@ -22,15 +22,149 @@ import {
 import { initials } from "../../lib/format";
 import "../../styles/contacts.css";
 
-// The three built-in views, plus one generated nav-item per category found.
+// The three built-in views, plus one generated nav-item per category found and
+// one per saved contact group (mailing list).
 type NavKey =
   | { kind: "name" }
   | { kind: "company" }
   | { kind: "category" }
-  | { kind: "cat"; value: string };
+  | { kind: "cat"; value: string }
+  | { kind: "group"; value: string };
 
 const sameNav = (a: NavKey, b: NavKey): boolean =>
-  a.kind === b.kind && (a.kind !== "cat" || (b as { value: string }).value === a.value);
+  a.kind === b.kind &&
+  (a.kind === "cat" || a.kind === "group"
+    ? (b as { value: string }).value === a.value
+    : true);
+
+// --- vCard 3.0 helpers ------------------------------------------------------
+
+/** Escape a value for a vCard property (RFC 2426 §5). */
+function vesc(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+/** Reverse vesc() for an imported value. */
+function vunesc(value: string): string {
+  return value.replace(/\\([\\,;nN])/g, (_m, ch: string) =>
+    ch === "n" || ch === "N" ? "\n" : ch,
+  );
+}
+
+/** Serialize a single contact to a vCard 3.0 block. */
+function toVCard(c: Contact): string {
+  const lines: string[] = ["BEGIN:VCARD", "VERSION:3.0"];
+  // N: Family;Given;Additional;Prefix;Suffix
+  lines.push(`N:${vesc(c.lastName)};${vesc(c.firstName)};;;`);
+  lines.push(`FN:${vesc(fullName(c) || fileAs(c))}`);
+  if (c.company) lines.push(`ORG:${vesc(c.company)}`);
+  if (c.title) lines.push(`TITLE:${vesc(c.title)}`);
+  if (c.email) lines.push(`EMAIL;TYPE=INTERNET:${vesc(c.email)}`);
+  if (c.workPhone) lines.push(`TEL;TYPE=WORK:${vesc(c.workPhone)}`);
+  if (c.cellPhone) lines.push(`TEL;TYPE=CELL:${vesc(c.cellPhone)}`);
+  if (c.address || c.city || c.state || c.zip || c.country) {
+    // ADR: PO;Ext;Street;City;Region;PostalCode;Country
+    lines.push(
+      `ADR;TYPE=WORK:;;${vesc(c.address)};${vesc(c.city)};${vesc(c.state)};${vesc(
+        c.zip,
+      )};${vesc(c.country)}`,
+    );
+  }
+  if (c.comments) lines.push(`NOTE:${vesc(c.comments)}`);
+  if (c.category.trim()) lines.push(`CATEGORIES:${vesc(c.category.trim())}`);
+  lines.push("END:VCARD");
+  return lines.join("\r\n");
+}
+
+/** Serialize many contacts into one .vcf payload. */
+function toVCardFile(contacts: Contact[]): string {
+  return contacts.map(toVCard).join("\r\n") + "\r\n";
+}
+
+/** Parse a .vcf payload into draft contacts (without ids). Tolerant of missing
+ *  fields and of folded/CRLF lines. */
+function parseVCards(text: string): Contact[] {
+  // Unfold continued lines (a leading space/tab continues the previous line).
+  const raw = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const unfolded = raw.replace(/\n[ \t]/g, "");
+  const lines = unfolded.split("\n");
+
+  const out: Contact[] = [];
+  let cur: Contact | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const upper = trimmed.toUpperCase();
+    if (upper === "BEGIN:VCARD") {
+      cur = emptyContact();
+      continue;
+    }
+    if (upper === "END:VCARD") {
+      if (cur) {
+        // Derive a name from FN when N was absent.
+        if (!cur.firstName && !cur.lastName && cur.email) {
+          cur.firstName = cur.email.split("@")[0];
+        }
+        out.push(cur);
+      }
+      cur = null;
+      continue;
+    }
+    if (!cur) continue;
+
+    const colon = trimmed.indexOf(":");
+    if (colon < 0) continue;
+    const rawKey = trimmed.slice(0, colon);
+    const value = vunesc(trimmed.slice(colon + 1));
+    const parts = rawKey.split(";");
+    const name = parts[0].toUpperCase();
+    const params = parts.slice(1).map((p) => p.toUpperCase());
+
+    if (name === "N") {
+      const seg = value.split(";");
+      cur.lastName = (seg[0] || "").trim();
+      cur.firstName = (seg[1] || "").trim();
+    } else if (name === "FN") {
+      if (!cur.firstName && !cur.lastName) {
+        const sp = value.trim().split(/\s+/);
+        cur.firstName = sp[0] || "";
+        cur.lastName = sp.slice(1).join(" ");
+      }
+    } else if (name === "ORG") {
+      cur.company = value.split(";")[0].trim();
+    } else if (name === "TITLE") {
+      cur.title = value.trim();
+    } else if (name === "EMAIL") {
+      if (!cur.email) cur.email = value.trim();
+    } else if (name === "TEL") {
+      const isCell = params.some((p) => p.includes("CELL") || p.includes("MOBILE"));
+      if (isCell) {
+        if (!cur.cellPhone) cur.cellPhone = value.trim();
+      } else if (!cur.workPhone) {
+        cur.workPhone = value.trim();
+      }
+    } else if (name === "ADR") {
+      const seg = value.split(";");
+      // ADR: PO;Ext;Street;City;Region;PostalCode;Country
+      cur.address = (seg[2] || "").trim();
+      cur.city = (seg[3] || "").trim();
+      cur.state = (seg[4] || "").trim();
+      cur.zip = (seg[5] || "").trim();
+      cur.country = (seg[6] || "").trim();
+    } else if (name === "NOTE") {
+      cur.comments = value;
+    } else if (name === "CATEGORIES") {
+      cur.category = value.split(",")[0].trim();
+    }
+  }
+
+  return out;
+}
 
 // A blank document, used to seed the New Contact form.
 const emptyContact = (): Contact => ({
@@ -63,7 +197,16 @@ function byLastName(a: Contact, b: Contact): number {
 }
 
 export default function Contacts() {
-  const { contacts, addContact, updateContact, deleteContact } = useNotes();
+  const {
+    contacts,
+    contactGroups,
+    addContact,
+    updateContact,
+    deleteContact,
+    addGroup,
+    updateGroup,
+    deleteGroup,
+  } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
   const requestMemo = useUI((s) => s.requestMemo);
 
@@ -72,6 +215,12 @@ export default function Contacts() {
   const [search, setSearch] = useState("");
   // The contact being edited in the dialog; null when the dialog is closed.
   const [draft, setDraft] = useState<Contact | null>(null);
+  // New-group dialog state; null when closed.
+  const [groupDraft, setGroupDraft] = useState<string | null>(null);
+  // Whether the "Add to Group" dropdown is open.
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  // Hidden file input used by Import vCard.
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Distinct categories present in the data, for the generated nav-items.
   const categories = useMemo(() => {
@@ -83,9 +232,18 @@ export default function Contacts() {
   // Group by company only when the "By Company" view is active.
   const grouped = nav.kind === "company";
 
+  // The contact group selected in the navigator, if any.
+  const activeGroup =
+    nav.kind === "group" ? contactGroups.find((g) => g.id === nav.value) ?? null : null;
+
   const list = useMemo(() => {
     let rows = contacts;
     if (nav.kind === "cat") rows = rows.filter((c) => c.category.trim() === nav.value);
+    if (nav.kind === "group") {
+      const grp = contactGroups.find((g) => g.id === nav.value);
+      const ids = new Set(grp?.memberIds ?? []);
+      rows = rows.filter((c) => ids.has(c.id));
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(
@@ -105,7 +263,7 @@ export default function Contacts() {
       sorted.sort(byLastName);
     }
     return sorted;
-  }, [contacts, nav, search, grouped]);
+  }, [contacts, contactGroups, nav, search, grouped]);
 
   const selected = contacts.find((c) => c.id === selectedId) ?? null;
 
@@ -145,8 +303,115 @@ export default function Contacts() {
     setStatus(`Deleted contact: ${label}.`);
   }
   function writeMemo() {
+    // When a group view is active, address the whole group; otherwise the
+    // single selected contact.
+    if (activeGroup) {
+      writeToGroup(activeGroup);
+      return;
+    }
     if (!selected) return;
     requestMemo(selected.email || fullName(selected));
+  }
+
+  // --- group actions ------------------------------------------------------
+  function newGroup() {
+    setGroupDraft("");
+  }
+  function saveGroup() {
+    const name = (groupDraft ?? "").trim();
+    if (!name) {
+      setStatus("A group needs a name.");
+      return;
+    }
+    const id = uid();
+    // Seed the new group with the selected contact, if any.
+    addGroup({ id, name, memberIds: selected ? [selected.id] : [] });
+    setGroupDraft(null);
+    setNav({ kind: "group", value: id });
+    setStatus(`Created group: ${name}.`);
+  }
+  function removeGroup(g: ContactGroup) {
+    if (!confirm(`Delete the group "${g.name}"? The contacts themselves are not removed.`)) return;
+    deleteGroup(g.id);
+    if (nav.kind === "group" && nav.value === g.id) setNav({ kind: "name" });
+    setStatus(`Deleted group: ${g.name}.`);
+  }
+  function addSelectedToGroup(g: ContactGroup) {
+    setGroupMenuOpen(false);
+    if (!selected) return;
+    if (g.memberIds.includes(selected.id)) {
+      setStatus(`${fullName(selected) || fileAs(selected)} is already in "${g.name}".`);
+      return;
+    }
+    updateGroup(g.id, { memberIds: [...g.memberIds, selected.id] });
+    setStatus(`Added ${fullName(selected) || fileAs(selected)} to "${g.name}".`);
+  }
+  function removeSelectedFromGroup(g: ContactGroup) {
+    setGroupMenuOpen(false);
+    if (!selected) return;
+    updateGroup(g.id, { memberIds: g.memberIds.filter((m) => m !== selected.id) });
+    setStatus(`Removed ${fullName(selected) || fileAs(selected)} from "${g.name}".`);
+  }
+  function writeToGroup(g: ContactGroup) {
+    const ids = new Set(g.memberIds);
+    const emails = contacts
+      .filter((c) => ids.has(c.id) && c.email.trim())
+      .map((c) => c.email.trim());
+    if (emails.length === 0) {
+      setStatus(`No members of "${g.name}" have an e-mail address.`);
+      return;
+    }
+    requestMemo(emails.join(", "), "");
+  }
+
+  // --- vCard actions ------------------------------------------------------
+  function exportVCard() {
+    // Export the whole listed set when a group/all view is active, otherwise
+    // the single selected contact.
+    const single = nav.kind === "name" || nav.kind === "company";
+    const rows = single && selected ? [selected] : list;
+    if (rows.length === 0) {
+      setStatus("Nothing to export.");
+      return;
+    }
+    const blob = new Blob([toVCardFile(rows)], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const base =
+      rows.length === 1
+        ? (fileAs(rows[0]) || "contact").replace(/[^\w.-]+/g, "_")
+        : "contacts";
+    a.href = url;
+    a.download = `${base}.vcf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus(
+      rows.length === 1
+        ? `Exported vCard: ${fullName(rows[0]) || fileAs(rows[0])}.`
+        : `Exported ${rows.length} contacts to vCard.`,
+    );
+  }
+  function importVCard() {
+    fileRef.current?.click();
+  }
+  function onImportFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const drafts = parseVCards(String(reader.result));
+      if (drafts.length === 0) {
+        setStatus("No vCards found in that file.");
+        return;
+      }
+      let lastId = "";
+      for (const d of drafts) {
+        const id = uid();
+        lastId = id;
+        addContact({ ...d, id });
+      }
+      if (drafts.length === 1) setSelectedId(lastId);
+      setStatus(`Imported ${drafts.length} contact${drafts.length === 1 ? "" : "s"} from vCard.`);
+    };
+    reader.readAsText(file);
   }
 
   // --- render -------------------------------------------------------------
@@ -157,7 +422,41 @@ export default function Contacts() {
         <ActionButton icon="✏️" label="Edit" onClick={() => selected && editContact(selected)} disabled={!selected} />
         <ActionButton icon="🗑️" label="Delete" onClick={del} disabled={!selected} />
         <ActionSep />
-        <ActionButton icon="✉️" label="Write Memo" onClick={writeMemo} disabled={!selected} />
+        <ActionButton
+          icon="✉️"
+          label={activeGroup ? "Write to Group" : "Write Memo"}
+          onClick={writeMemo}
+          disabled={!activeGroup && !selected}
+          title={activeGroup ? `Write a memo to everyone in "${activeGroup.name}"` : "Write Memo"}
+        />
+        <ActionSep />
+        <ActionButton icon="📇" label="New Group" onClick={newGroup} />
+        <div className="action-dropdown">
+          <ActionButton
+            icon="➕"
+            label="Add to Group"
+            caret
+            onClick={() => setGroupMenuOpen((v) => !v)}
+            disabled={!selected || contactGroups.length === 0}
+            title={
+              contactGroups.length === 0
+                ? "Create a group first"
+                : "Add or remove the selected contact"
+            }
+          />
+          {groupMenuOpen && selected && (
+            <GroupMenu
+              groups={contactGroups}
+              memberOf={(g) => g.memberIds.includes(selected.id)}
+              onAdd={addSelectedToGroup}
+              onRemove={removeSelectedFromGroup}
+              onClose={() => setGroupMenuOpen(false)}
+            />
+          )}
+        </div>
+        <ActionSep />
+        <ActionButton icon="📤" label="Export vCard" onClick={exportVCard} disabled={list.length === 0} />
+        <ActionButton icon="📥" label="Import vCard" onClick={importVCard} />
         <ActionSpacer />
         <div className="action-search">
           <input
@@ -169,6 +468,18 @@ export default function Contacts() {
           />
         </div>
       </ActionBar>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".vcf,text/vcard,text/x-vcard"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onImportFile(f);
+          e.target.value = "";
+        }}
+      />
 
       <div className="app-cols">
         {/* Navigator */}
@@ -202,6 +513,37 @@ export default function Contacts() {
               </div>
             </>
           )}
+
+          <div className="nav-subhead nav-groups-head">
+            <span>Groups</span>
+            <button className="nav-mini-btn" title="New Group…" onClick={newGroup}>＋</button>
+          </div>
+          <div className="nav-group nav-sub">
+            {contactGroups.length === 0 && (
+              <div className="nav-hint">No groups. Use New Group.</div>
+            )}
+            {contactGroups.map((g) => {
+              const key: NavKey = { kind: "group", value: g.id };
+              return (
+                <div
+                  key={g.id}
+                  className={"nav-item nav-group-item" + (sameNav(nav, key) ? " active" : "")}
+                  onClick={() => { setNav(key); setSelectedId(null); }}
+                >
+                  <span className="nav-ic">👥</span>
+                  <span className="nav-label">{g.name}</span>
+                  <span className="nav-count">{g.memberIds.length}</span>
+                  <button
+                    className="nav-mini-btn nav-del"
+                    title={`Delete group "${g.name}"`}
+                    onClick={(e) => { e.stopPropagation(); removeGroup(g); }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Contact list */}
@@ -221,10 +563,17 @@ export default function Contacts() {
           </div>
         </div>
 
-        {/* Business-card preview */}
+        {/* Business-card preview (or a group summary when none selected) */}
         <div className="preview-pane">
           {selected ? (
             <BusinessCard c={selected} onEdit={() => editContact(selected)} onMemo={writeMemo} />
+          ) : activeGroup ? (
+            <GroupCard
+              group={activeGroup}
+              memberCount={list.length}
+              onWrite={() => writeToGroup(activeGroup)}
+              onDelete={() => removeGroup(activeGroup)}
+            />
           ) : (
             <div className="preview-empty">Select a contact to view the card.</div>
           )}
@@ -241,7 +590,101 @@ export default function Contacts() {
           onCancel={() => setDraft(null)}
         />
       )}
+
+      {groupDraft !== null && (
+        <GroupDialog
+          name={groupDraft}
+          seededWith={selected ? fullName(selected) || fileAs(selected) : null}
+          onChange={setGroupDraft}
+          onSave={saveGroup}
+          onCancel={() => setGroupDraft(null)}
+        />
+      )}
     </div>
+  );
+}
+
+// --- "Add to Group" dropdown menu -------------------------------------------
+function GroupMenu({
+  groups,
+  memberOf,
+  onAdd,
+  onRemove,
+  onClose,
+}: {
+  groups: ContactGroup[];
+  memberOf: (g: ContactGroup) => boolean;
+  onAdd: (g: ContactGroup) => void;
+  onRemove: (g: ContactGroup) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="dropdown-scrim" onClick={onClose} />
+      <div className="dropdown-menu group-menu">
+        {groups.map((g) => {
+          const inGroup = memberOf(g);
+          return (
+            <div
+              key={g.id}
+              className="dropdown-item"
+              onClick={() => (inGroup ? onRemove(g) : onAdd(g))}
+            >
+              <span className="dd-check">{inGroup ? "✓" : ""}</span>
+              <span className="dd-label">{g.name}</span>
+              <span className="dd-hint">{inGroup ? "Remove" : "Add"}</span>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+// --- New Group dialog -------------------------------------------------------
+function GroupDialog({
+  name,
+  seededWith,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  name: string;
+  seededWith: string | null;
+  onChange: (name: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog
+      title="New Group"
+      width={380}
+      onClose={onCancel}
+      footer={
+        <>
+          <button className="btn primary" onClick={onSave}>💾 Create</button>
+          <button className="btn" onClick={onCancel}>✕ Cancel</button>
+        </>
+      }
+    >
+      <div className="contact-form contact-form-wide">
+        <FieldRow label="Group Name">
+          <input
+            type="text"
+            autoFocus
+            value={name}
+            placeholder="e.g. Project Falcon"
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onSave(); }}
+          />
+        </FieldRow>
+        {seededWith && (
+          <div className="group-seed-hint">
+            Will start with the selected contact: <b>{seededWith}</b>.
+          </div>
+        )}
+      </div>
+    </Dialog>
   );
 }
 
@@ -365,6 +808,40 @@ function CardRow({ label, children }: { label: string; children: ReactNode }) {
     <div className="biz-row">
       <div className="biz-label">{label}</div>
       <div className="biz-value">{children}</div>
+    </div>
+  );
+}
+
+// --- Group summary card (preview pane when a group is selected) --------------
+function GroupCard({
+  group,
+  memberCount,
+  onWrite,
+  onDelete,
+}: {
+  group: ContactGroup;
+  memberCount: number;
+  onWrite: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="form card-host">
+      <div className="biz-card">
+        <div className="biz-head">
+          <div className="biz-avatar group-avatar">👥</div>
+          <div className="biz-id">
+            <div className="biz-name">{group.name}</div>
+            <div className="biz-company">Mailing list</div>
+          </div>
+        </div>
+        <div className="biz-grid">
+          <CardRow label="Members">{memberCount}</CardRow>
+        </div>
+        <div className="biz-foot">
+          <button className="btn" onClick={onWrite}>✉️ Write to Group</button>
+          <button className="btn" onClick={onDelete}>🗑️ Delete Group</button>
+        </div>
+      </div>
     </div>
   );
 }
