@@ -9,17 +9,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
-import type { Attachment, MailFolder, MailMessage, Person, Priority } from "../../data/types";
+import type {
+  Attachment,
+  CustomFolder,
+  FlagColor,
+  MailFolder,
+  MailMessage,
+  MailRule,
+  Person,
+  Priority,
+} from "../../data/types";
 import {
   ActionBar,
   ActionButton,
   ActionSep,
   ActionSpacer,
+  Dialog,
 } from "../../components/ui";
 import { fmtListDate, fmtDateTime, initials } from "../../lib/format";
 import "../../styles/mail.css";
 
-type NavKey = MailFolder | "followup" | "all" | "junk" | "chat";
+// A custom-folder selection is encoded as `label:<folderId>`.
+type NavKey = MailFolder | "followup" | "all" | "junk" | "chat" | `label:${string}`;
+
+const FLAG_COLORS: FlagColor[] = ["red", "yellow", "green", "blue", "purple", "orange"];
 
 interface Compose {
   draftId: string | null; // existing draft being edited, if any
@@ -44,10 +57,10 @@ const FOLDERS: { key: NavKey; label: string; icon: string }[] = [
 ];
 
 // Decorative navigator entries — real Notes views not modeled in this demo.
-const EXTRA_NAV = [
+// (The "Folders"/"Catalog" placeholders were replaced by the real Folders
+// section below; Views/Archive/Tools/Other Mail stay decorative.)
+const EXTRA_NAV: { label: string; icon: string; twistie?: boolean }[] = [
   { label: "Views", icon: "🔎", twistie: true },
-  { label: "Folders", icon: "📁", twistie: true },
-  { label: "Catalog", icon: "📂", sub: true, count: 1 },
   { label: "Archive", icon: "🗄️" },
   { label: "Tools", icon: "🔧" },
   { label: "Other Mail", icon: "✉️" },
@@ -120,6 +133,15 @@ export default function Mail() {
     deleteMail,
     markRead,
     emptyTrash,
+    customFolders,
+    addFolder,
+    renameFolder,
+    deleteFolder,
+    setMailFolderLabel,
+    mailRules,
+    addRule,
+    deleteRule,
+    applyRules,
   } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
   const pendingMemo = useUI((s) => s.pendingMemo);
@@ -139,6 +161,10 @@ export default function Mail() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [copyOpen, setCopyOpen] = useState(false);
   const copyRef = useRef<HTMLDivElement>(null);
+  const [fileOpen, setFileOpen] = useState(false);
+  const fileRef = useRef<HTMLDivElement>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   // Respond to global keyboard commands while Mail is the active view.
   useEffect(() => {
@@ -177,6 +203,16 @@ export default function Mail() {
     return () => document.removeEventListener("mousedown", close);
   }, [copyOpen]);
 
+  // Close the "Move To Folder" dropdown when clicking outside it.
+  useEffect(() => {
+    if (!fileOpen) return;
+    const close = (e: MouseEvent) => {
+      if (fileRef.current && !fileRef.current.contains(e.target as Node)) setFileOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [fileOpen]);
+
   const showsSender = nav === "sent" || nav === "drafts";
 
   const messages = useMemo(() => {
@@ -184,7 +220,10 @@ export default function Mail() {
     if (nav === "followup") list = mail.filter((m) => m.flagged && m.folder !== "trash");
     else if (nav === "all") list = mail.filter((m) => m.folder !== "trash");
     else if (nav === "junk" || nav === "chat") list = [];
-    else list = mail.filter((m) => m.folder === nav);
+    else if (nav.startsWith("label:")) {
+      const folderId = nav.slice("label:".length);
+      list = mail.filter((m) => m.folder !== "trash" && (m.labels?.includes(folderId) ?? false));
+    } else list = mail.filter((m) => m.folder === nav);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -224,6 +263,19 @@ export default function Mail() {
   const inboxUnread = mail.filter((m) => m.folder === "inbox" && !m.read).length;
   const draftCount = mail.filter((m) => m.folder === "drafts").length;
   const flagCount = mail.filter((m) => m.flagged && m.folder !== "trash").length;
+
+  // Message count per custom folder (memos filed under it, excluding trash).
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const f of customFolders) counts[f.id] = 0;
+    for (const m of mail) {
+      if (m.folder === "trash" || !m.labels) continue;
+      for (const id of m.labels) {
+        if (id in counts) counts[id] += 1;
+      }
+    }
+    return counts;
+  }, [mail, customFolders]);
 
   function sortBy(k: SortKey) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1));
@@ -270,6 +322,11 @@ export default function Mail() {
           (unread ? " unread" : "") +
           (m.flagged ? " row-" + (m.flagColor ?? "yellow") : "")
         }
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", m.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
         onClick={() => selectMessage(m)}
         onDoubleClick={() => (m.folder === "drafts" ? editDraft(m) : selectMessage(m))}
       >
@@ -429,6 +486,50 @@ export default function Mail() {
     setCopyOpen(false);
   }
 
+  // --- Custom folders -----------------------------------------------------
+  function newFolder() {
+    const name = window.prompt("New folder name:", "");
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const id = addFolder(trimmed);
+    setStatus(`Folder "${trimmed}" created.`);
+    setNav(`label:${id}`);
+    setSelectedId(null);
+  }
+  function renameFolderPrompt(id: string, current: string) {
+    const name = window.prompt("Rename folder:", current);
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === current) return;
+    renameFolder(id, trimmed);
+    setStatus(`Folder renamed to "${trimmed}".`);
+  }
+  function removeFolder(id: string, name: string) {
+    if (!window.confirm(`Remove folder "${name}"? Filed memos stay in their mail folders.`)) return;
+    deleteFolder(id);
+    if (nav === `label:${id}`) {
+      setNav("inbox");
+      setSelectedId(null);
+    }
+    setStatus(`Folder "${name}" removed.`);
+  }
+
+  // --- Filing (Move To Folder + drag and drop) ----------------------------
+  function toggleFile(folderId: string) {
+    if (!selected) return;
+    const on = !(selected.labels?.includes(folderId) ?? false);
+    setMailFolderLabel(selected.id, folderId, on);
+    const fname = customFolders.find((f) => f.id === folderId)?.name ?? "folder";
+    setStatus(on ? `Filed in "${fname}".` : `Removed from "${fname}".`);
+  }
+  function dropOnFolder(folderId: string, msgId: string) {
+    setMailFolderLabel(msgId, folderId, true);
+    const fname = customFolders.find((f) => f.id === folderId)?.name ?? "folder";
+    const subj = mail.find((m) => m.id === msgId)?.subject ?? "Memo";
+    setStatus(`Filed "${subj}" in "${fname}".`);
+  }
+
   // --- render -------------------------------------------------------------
   return (
     <div className="app mail-app">
@@ -469,6 +570,37 @@ export default function Mail() {
             </div>
           )}
         </div>
+        <div className="copy-into" ref={fileRef} style={{ position: "relative" }}>
+          <ActionButton
+            icon="📁"
+            label="Move To Folder"
+            caret
+            onClick={() => selected && setFileOpen((o) => !o)}
+            disabled={!selected}
+          />
+          {fileOpen && selected && (
+            <div className="open-menu" style={{ top: "100%", left: 0 }}>
+              {customFolders.length === 0 && (
+                <div className="open-row open-row-empty">No folders yet</div>
+              )}
+              {customFolders.map((f) => {
+                const filed = selected.labels?.includes(f.id) ?? false;
+                return (
+                  <div key={f.id} className="open-row" onMouseDown={() => toggleFile(f.id)}>
+                    <span className="open-row-ic">{filed ? "☑" : "☐"}</span>
+                    {f.name}
+                  </div>
+                );
+              })}
+              <div className="open-row open-row-sep" onMouseDown={newFolder}>
+                <span className="open-row-ic">➕</span>
+                New Folder…
+              </div>
+            </div>
+          )}
+        </div>
+        <ActionSep />
+        <ActionButton icon="⚙️" label="Rules" caret onClick={() => setRulesOpen(true)} />
         <ActionSpacer />
         <div className="action-search">
           <input
@@ -510,18 +642,95 @@ export default function Mail() {
                 </div>
               );
             })}
+            {/* Real, user-created folders */}
+            <div className="nav-item nav-folders-head">
+              <span className="nav-twistie">▼</span>
+              <span className="nav-ic">📁</span>
+              <span className="nav-label">Folders</span>
+              <span
+                className="nav-folder-add"
+                title="Create a new folder"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  newFolder();
+                }}
+              >
+                ＋
+              </span>
+            </div>
+            {customFolders.length === 0 && (
+              <div className="nav-item nav-indent nav-folders-empty">
+                <span className="nav-label muted">(no folders)</span>
+              </div>
+            )}
+            {customFolders.map((f) => {
+              const key: NavKey = `label:${f.id}`;
+              const count = folderCounts[f.id] ?? 0;
+              const isDrop = dropTarget === f.id;
+              return (
+                <div
+                  key={f.id}
+                  className={
+                    "nav-item nav-indent nav-folder" +
+                    (nav === key ? " active" : "") +
+                    (isDrop ? " drop-target" : "")
+                  }
+                  onClick={() => {
+                    setNav(key);
+                    setSelectedId(null);
+                    setCompose(null);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (dropTarget !== f.id) setDropTarget(f.id);
+                  }}
+                  onDragLeave={() => setDropTarget((t) => (t === f.id ? null : t))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDropTarget(null);
+                    const msgId = e.dataTransfer.getData("text/plain");
+                    if (msgId) dropOnFolder(f.id, msgId);
+                  }}
+                >
+                  <span className="nav-ic">🗂️</span>
+                  <span className={"nav-label" + (count > 0 ? " has-count" : "")}>
+                    {f.name}
+                    {count > 0 ? ` (${count})` : ""}
+                  </span>
+                  <span
+                    className="nav-folder-act"
+                    title="Rename folder"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      renameFolderPrompt(f.id, f.name);
+                    }}
+                  >
+                    ✎
+                  </span>
+                  <span
+                    className="nav-folder-act"
+                    title="Remove folder"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFolder(f.id, f.name);
+                    }}
+                  >
+                    ✕
+                  </span>
+                </div>
+              );
+            })}
+
             {EXTRA_NAV.map((e) => (
               <div
                 key={e.label}
-                className={"nav-item" + (e.sub ? " nav-indent" : "")}
+                className="nav-item"
                 onClick={() => setStatus(`${e.label} is not available in this demo build.`)}
               >
                 {e.twistie ? <span className="nav-twistie">▶</span> : <span className="nav-ic">{e.icon}</span>}
                 {e.twistie && <span className="nav-ic">{e.icon}</span>}
-                <span className="nav-label">
-                  {e.label}
-                  {e.count ? ` (${e.count})` : ""}
-                </span>
+                <span className="nav-label">{e.label}</span>
               </div>
             ))}
           </div>
@@ -605,6 +814,24 @@ export default function Mail() {
           </div>
         )}
       </div>
+
+      {rulesOpen && (
+        <RulesDialog
+          rules={mailRules}
+          folders={customFolders}
+          onAdd={addRule}
+          onDelete={deleteRule}
+          onApply={() => {
+            const n = applyRules();
+            setStatus(
+              n === 0
+                ? "Rules applied. No messages affected."
+                : `Rules applied. ${n} message${n === 1 ? "" : "s"} affected.`,
+            );
+          }}
+          onClose={() => setRulesOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -782,5 +1009,128 @@ function ComposeForm({
         onInput={(e) => set({ bodyHtml: (e.target as HTMLDivElement).innerHTML })}
       />
     </div>
+  );
+}
+
+// --- Rules dialog -----------------------------------------------------------
+function RulesDialog({
+  rules,
+  folders,
+  onAdd,
+  onDelete,
+  onApply,
+  onClose,
+}: {
+  rules: MailRule[];
+  folders: CustomFolder[];
+  onAdd: (r: MailRule) => void;
+  onDelete: (id: string) => void;
+  onApply: () => void;
+  onClose: () => void;
+}) {
+  const [field, setField] = useState<MailRule["field"]>("from");
+  const [contains, setContains] = useState("");
+  const [action, setAction] = useState<MailRule["action"]>("move");
+  const [folderId, setFolderId] = useState<string>(folders[0]?.id ?? "");
+  const [flagColor, setFlagColor] = useState<FlagColor>("yellow");
+
+  const fieldLabel = (f: MailRule["field"]) =>
+    f === "from" ? "From" : f === "subject" ? "Subject" : "Body";
+  const folderName = (id?: string) => folders.find((f) => f.id === id)?.name ?? "(deleted folder)";
+
+  function add() {
+    const text = contains.trim();
+    if (!text) return;
+    if (action === "move" && !folderId) return;
+    const rule: MailRule =
+      action === "move"
+        ? { id: uid(), field, contains: text, action: "move", folderId }
+        : { id: uid(), field, contains: text, action: "flag", flagColor };
+    onAdd(rule);
+    setContains("");
+  }
+
+  return (
+    <Dialog
+      title="Mail Rules"
+      onClose={onClose}
+      width={460}
+      footer={
+        <>
+          <button className="btn" onClick={onApply}>Apply Rules Now</button>
+          <button className="btn" onClick={onClose}>Close</button>
+        </>
+      }
+    >
+      <div className="rules-list">
+        {rules.length === 0 && <div className="rules-empty">No rules defined yet.</div>}
+        {rules.map((r) => (
+          <div key={r.id} className="rule-row">
+            <span className="rule-text">
+              When <b>{fieldLabel(r.field)}</b> contains <b>“{r.contains}”</b>
+              {r.action === "move" ? (
+                <> → file in <b>{folderName(r.folderId)}</b></>
+              ) : (
+                <> → flag <b>{r.flagColor ?? "yellow"}</b></>
+              )}
+            </span>
+            <button className="btn rule-del" title="Delete rule" onClick={() => onDelete(r.id)}>
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="rule-form">
+        <div className="rule-form-row">
+          <span>When</span>
+          <select value={field} onChange={(e) => setField(e.target.value as MailRule["field"])}>
+            <option value="from">From</option>
+            <option value="subject">Subject</option>
+            <option value="body">Body</option>
+          </select>
+          <span>contains</span>
+          <input
+            type="text"
+            className="bevel-field"
+            placeholder="text to match…"
+            value={contains}
+            onChange={(e) => setContains(e.target.value)}
+          />
+        </div>
+        <div className="rule-form-row">
+          <span>then</span>
+          <select value={action} onChange={(e) => setAction(e.target.value as MailRule["action"])}>
+            <option value="move">Move to folder</option>
+            <option value="flag">Flag</option>
+          </select>
+          {action === "move" ? (
+            <select
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              disabled={folders.length === 0}
+            >
+              {folders.length === 0 && <option value="">(no folders)</option>}
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+          ) : (
+            <select value={flagColor} onChange={(e) => setFlagColor(e.target.value as FlagColor)}>
+              {FLAG_COLORS.map((c) => (
+                <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+          )}
+          <button
+            className="btn primary"
+            onClick={add}
+            disabled={!contains.trim() || (action === "move" && !folderId)}
+          >
+            Add Rule
+          </button>
+        </div>
+      </div>
+    </Dialog>
   );
 }

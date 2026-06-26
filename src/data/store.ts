@@ -10,11 +10,13 @@ import { persist } from "zustand/middleware";
 import type {
   Contact,
   ContactGroup,
+  CustomFolder,
   DiscussionPost,
   CalendarEntry,
   JournalEntry,
   MailFolder,
   MailMessage,
+  MailRule,
   TodoTask,
   UserProfile,
 } from "./types";
@@ -36,6 +38,8 @@ export interface NotesState {
   todos: TodoTask[];
   journal: JournalEntry[];
   discussion: DiscussionPost[];
+  customFolders: CustomFolder[];
+  mailRules: MailRule[];
 
   // --- profile ---
   setUser: (patch: Partial<UserProfile>) => void;
@@ -48,6 +52,18 @@ export interface NotesState {
   deleteMail: (id: string) => void; // soft-delete to trash, or purge if already trashed
   emptyTrash: () => void;
   markRead: (id: string, read: boolean) => void;
+
+  // --- custom mail folders ---
+  addFolder: (name: string) => string; // returns the new folder id
+  renameFolder: (id: string, name: string) => void;
+  deleteFolder: (id: string) => void; // also strips the label from every message
+  setMailFolderLabel: (msgId: string, folderId: string, on: boolean) => void;
+
+  // --- mail rules ---
+  addRule: (r: MailRule) => void;
+  deleteRule: (id: string) => void;
+  /** Scan inbox messages and apply every matching rule. Returns affected count. */
+  applyRules: () => number;
 
   // --- calendar ---
   addCalendarEntry: (e: CalendarEntry) => void;
@@ -100,6 +116,8 @@ export const useNotes = create<NotesState>()(
       todos: seed.todos,
       journal: seed.journal,
       discussion: seed.discussion,
+      customFolders: seed.customFolders,
+      mailRules: seed.mailRules,
 
       setUser: (patch) => set((s) => ({ user: { ...s.user, ...patch } })),
 
@@ -129,6 +147,78 @@ export const useNotes = create<NotesState>()(
         set((s) => ({
           mail: s.mail.map((m) => (m.id === id ? { ...m, read } : m)),
         })),
+
+      addFolder: (name) => {
+        const folder: CustomFolder = { id: uid(), name: name.trim() || "Untitled Folder" };
+        set((s) => ({ customFolders: [...s.customFolders, folder] }));
+        return folder.id;
+      },
+      renameFolder: (id, name) =>
+        set((s) => ({
+          customFolders: s.customFolders.map((f) =>
+            f.id === id ? { ...f, name: name.trim() || f.name } : f,
+          ),
+        })),
+      deleteFolder: (id) =>
+        set((s) => ({
+          customFolders: s.customFolders.filter((f) => f.id !== id),
+          // Strip the deleted folder's id from every message's labels.
+          mail: s.mail.map((m) =>
+            m.labels && m.labels.includes(id)
+              ? { ...m, labels: m.labels.filter((l) => l !== id) }
+              : m,
+          ),
+        })),
+      setMailFolderLabel: (msgId, folderId, on) =>
+        set((s) => ({
+          mail: s.mail.map((m) => {
+            if (m.id !== msgId) return m;
+            const current = m.labels ?? [];
+            if (on) {
+              return current.includes(folderId) ? m : { ...m, labels: [...current, folderId] };
+            }
+            return { ...m, labels: current.filter((l) => l !== folderId) };
+          }),
+        })),
+
+      addRule: (r) => set((s) => ({ mailRules: [...s.mailRules, r] })),
+      deleteRule: (id) =>
+        set((s) => ({ mailRules: s.mailRules.filter((r) => r.id !== id) })),
+      applyRules: () => {
+        const s = get();
+        if (s.mailRules.length === 0) return 0;
+        const affected = new Set<string>();
+        const next = s.mail.map((m) => {
+          if (m.folder !== "inbox") return m;
+          let msg = m;
+          for (const rule of s.mailRules) {
+            const needle = rule.contains.trim().toLowerCase();
+            if (!needle) continue;
+            let hay = "";
+            if (rule.field === "from") hay = `${msg.from.name} ${msg.from.email}`;
+            else if (rule.field === "subject") hay = msg.subject;
+            else hay = msg.body;
+            if (!hay.toLowerCase().includes(needle)) continue;
+
+            if (rule.action === "move" && rule.folderId) {
+              const labels = msg.labels ?? [];
+              if (!labels.includes(rule.folderId)) {
+                msg = { ...msg, labels: [...labels, rule.folderId] };
+                affected.add(msg.id);
+              }
+            } else if (rule.action === "flag") {
+              const color = rule.flagColor ?? "yellow";
+              if (!msg.flagged || msg.flagColor !== color) {
+                msg = { ...msg, flagged: true, flagColor: color };
+                affected.add(msg.id);
+              }
+            }
+          }
+          return msg;
+        });
+        if (affected.size > 0) set({ mail: next });
+        return affected.size;
+      },
 
       addCalendarEntry: (e) => set((s) => ({ calendar: [...s.calendar, e] })),
       updateCalendarEntry: (id, patch) =>
@@ -211,6 +301,8 @@ export const useNotes = create<NotesState>()(
           todos: fresh.todos,
           journal: fresh.journal,
           discussion: fresh.discussion,
+          customFolders: fresh.customFolders,
+          mailRules: fresh.mailRules,
         });
       },
 
@@ -230,6 +322,8 @@ export const useNotes = create<NotesState>()(
               todos: s.todos,
               journal: s.journal,
               discussion: s.discussion,
+              customFolders: s.customFolders,
+              mailRules: s.mailRules,
             },
           },
           null,
@@ -242,15 +336,24 @@ export const useNotes = create<NotesState>()(
           const parsed = JSON.parse(json);
           const d = parsed?.data ?? parsed;
           if (!d || typeof d !== "object") return false;
+          // Tolerate messages exported before custom folders existed: normalize
+          // `labels` to a string[] (or leave it absent) so the rest of the app
+          // can treat it uniformly.
+          const rawMail: MailMessage[] = Array.isArray(d.mail) ? d.mail : [];
+          const mail = rawMail.map((m) =>
+            Array.isArray(m.labels) ? m : { ...m, labels: [] },
+          );
           set({
             user: d.user ?? get().user,
-            mail: Array.isArray(d.mail) ? d.mail : [],
+            mail,
             calendar: Array.isArray(d.calendar) ? d.calendar : [],
             contacts: Array.isArray(d.contacts) ? d.contacts : [],
             contactGroups: Array.isArray(d.contactGroups) ? d.contactGroups : [],
             todos: Array.isArray(d.todos) ? d.todos : [],
             journal: Array.isArray(d.journal) ? d.journal : [],
             discussion: Array.isArray(d.discussion) ? d.discussion : [],
+            customFolders: Array.isArray(d.customFolders) ? d.customFolders : [],
+            mailRules: Array.isArray(d.mailRules) ? d.mailRules : [],
           });
           return true;
         } catch {

@@ -8,10 +8,12 @@
 import type {
   Contact,
   ContactGroup,
+  CustomFolder,
   DiscussionPost,
   CalendarEntry,
   JournalEntry,
   MailMessage,
+  MailRule,
   TodoTask,
   UserProfile,
 } from "./types";
@@ -39,6 +41,8 @@ export interface SeedData {
   todos: TodoTask[];
   journal: JournalEntry[];
   discussion: DiscussionPost[];
+  customFolders: CustomFolder[];
+  mailRules: MailRule[];
 }
 
 export function buildSeed(): SeedData {
@@ -57,6 +61,12 @@ export function buildSeed(): SeedData {
   const carl = p("Carl Jensen", "carl.jensen@acme.example.com");
   const priya = p("Priya Nair", "priya.nair@acme.example.com");
   const admin = p("Domino Administrator", "admin@acme.example.com");
+
+  // User-created folders the demo ships with, so the "Folders" section is alive.
+  const customFolders: CustomFolder[] = [
+    { id: id("f", 1), name: "Projects" },
+    { id: id("f", 2), name: "Receipts" },
+  ];
 
   const mail: MailMessage[] = [
     {
@@ -77,6 +87,7 @@ export function buildSeed(): SeedData {
       flagColor: "yellow",
       hasAttachment: true,
       priority: "high",
+      labels: [id("f", 1)],
     },
     {
       id: id("m", 2),
@@ -110,6 +121,7 @@ export function buildSeed(): SeedData {
       flagged: true,
       flagColor: "green",
       priority: "normal",
+      labels: [id("f", 1)],
     },
     {
       id: id("m", 4),
@@ -518,5 +530,27 @@ export function buildSeed(): SeedData {
     },
   ];
 
-  return { user: me, mail, calendar, contacts, contactGroups, todos, journal, discussion };
+  // One example rule: file anything mentioning "Northwind" into Projects.
+  const mailRules: MailRule[] = [
+    {
+      id: id("r", 1),
+      field: "subject",
+      contains: "Northwind",
+      action: "move",
+      folderId: id("f", 1),
+    },
+  ];
+
+  return {
+    user: me,
+    mail,
+    calendar,
+    contacts,
+    contactGroups,
+    todos,
+    journal,
+    discussion,
+    customFolders,
+    mailRules,
+  };
 }

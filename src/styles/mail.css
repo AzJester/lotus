@@ -350,3 +350,118 @@ a.attach-chip:hover {
   padding-left: 8px;
   color: #444;
 }
+
+/* ==========================================================================
+   Custom folders (navigator) + filing
+   ========================================================================== */
+.mail-app .nav-folders-head {
+  font-weight: bold;
+}
+.mail-app .nav-folders-head .nav-folder-add {
+  margin-left: auto;
+  padding: 0 4px;
+  font-weight: bold;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.mail-app .nav-folders-head .nav-folder-add:hover {
+  color: var(--link);
+}
+.mail-app .nav-folders-empty .nav-label {
+  font-style: italic;
+}
+
+/* A custom folder row reveals its rename/remove affordances on hover. */
+.mail-app .nav-folder .nav-folder-act {
+  flex: 0 0 auto;
+  width: 14px;
+  text-align: center;
+  color: var(--ink-muted);
+  cursor: pointer;
+  visibility: hidden;
+  font-size: var(--fs-sm);
+}
+.mail-app .nav-folder:hover .nav-folder-act {
+  visibility: visible;
+}
+.mail-app .nav-folder .nav-folder-act:hover {
+  color: var(--unread);
+}
+.mail-app .nav-folder.active .nav-folder-act {
+  color: #fff;
+}
+
+/* Drag-and-drop filing target highlight. */
+.mail-app .nav-item.drop-target {
+  background: var(--sel-soft);
+  outline: 1px dashed var(--sel);
+  outline-offset: -2px;
+}
+
+/* Draggable message rows show the move cursor while dragging. */
+.mail-list .view-row[draggable="true"] {
+  cursor: default;
+}
+
+/* "Move To Folder" dropdown extras (reuses .open-menu / .open-row). */
+.open-row.open-row-empty {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.open-row.open-row-sep {
+  border-top: 1px solid var(--shadow);
+}
+
+/* ==========================================================================
+   Rules dialog
+   ========================================================================== */
+.rules-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--shadow);
+  background: var(--white);
+  margin-bottom: 12px;
+}
+.rules-empty {
+  padding: 12px;
+  color: var(--ink-muted);
+  font-style: italic;
+  text-align: center;
+}
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--grid-soft);
+  font-size: var(--fs-sm);
+}
+.rule-row:last-child {
+  border-bottom: none;
+}
+.rule-text {
+  flex: 1;
+  min-width: 0;
+}
+.rule-del {
+  flex: 0 0 auto;
+  padding: 0 7px;
+}
+.rule-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--shadow);
+}
+.rule-form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  flex-wrap: wrap;
+}
+.rule-form-row input[type="text"] {
+  flex: 1;
+  min-width: 120px;
+}
