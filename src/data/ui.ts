@@ -59,6 +59,13 @@ export interface PendingMemo {
   subject: string;
 }
 
+/** A "Copy Into New" handover (e.g. from a mail memo). Consumed and cleared by
+ *  the target Calendar / To Do module on open, mirroring PendingMemo. */
+export interface PendingCopy {
+  subject: string;
+  description: string;
+}
+
 interface UIState {
   tabs: OpenTab[];
   active: ViewId;
@@ -66,10 +73,16 @@ interface UIState {
   status: string;
   /** A pending "new memo" request, consumed by the Mail module on open. */
   pendingMemo: PendingMemo | null;
+  /** A pending "copy into a calendar entry" handover, consumed by Calendar. */
+  pendingCalendar: PendingCopy | null;
+  /** A pending "copy into a to do" handover, consumed by the To Do module. */
+  pendingTodo: PendingCopy | null;
   /** Current global search query, shown by the Search Results view. */
   searchQuery: string;
   /** Latest keyboard command for the active module to consume. */
   cmd: UICommand | null;
+  /** Open Sametime chat windows, keyed by buddy display name (no duplicates). */
+  openChats: string[];
 
   openView: (view: ViewId) => void;
   closeTab: (view: ViewId) => void;
@@ -78,10 +91,20 @@ interface UIState {
   /** Open Mail and start a new memo addressed to `to`. */
   requestMemo: (to: string, subject?: string) => void;
   clearMemo: () => void;
+  /** Open Calendar and prefill a new entry from the given subject/description. */
+  copyToCalendar: (p: PendingCopy) => void;
+  clearPendingCalendar: () => void;
+  /** Open To Do and prefill a new task from the given subject/description. */
+  copyToTodo: (p: PendingCopy) => void;
+  clearPendingTodo: () => void;
   /** Run a global search and open the results view. */
   runSearch: (query: string) => void;
   /** Dispatch a keyboard command to the active module. */
   sendCmd: (name: UICommand["name"]) => void;
+  /** Open a Sametime chat window with the named buddy (idempotent). */
+  openChat: (name: string) => void;
+  /** Close the named buddy's chat window. */
+  closeChat: (name: string) => void;
 }
 
 export const useUI = create<UIState>()(
@@ -91,8 +114,11 @@ export const useUI = create<UIState>()(
       active: "welcome",
       status: "Done",
       pendingMemo: null,
+      pendingCalendar: null,
+      pendingTodo: null,
       searchQuery: "",
       cmd: null,
+      openChats: [],
 
       openView: (view) =>
         set((s) => {
@@ -134,6 +160,30 @@ export const useUI = create<UIState>()(
         }),
       clearMemo: () => set({ pendingMemo: null }),
 
+      copyToCalendar: (p) =>
+        set((s) => {
+          const exists = s.tabs.some((t) => t.view === "calendar");
+          return {
+            pendingCalendar: p,
+            tabs: exists ? s.tabs : [...s.tabs, { view: "calendar" as ViewId }],
+            active: "calendar",
+            status: "Copied to Calendar.",
+          };
+        }),
+      clearPendingCalendar: () => set({ pendingCalendar: null }),
+
+      copyToTodo: (p) =>
+        set((s) => {
+          const exists = s.tabs.some((t) => t.view === "todo");
+          return {
+            pendingTodo: p,
+            tabs: exists ? s.tabs : [...s.tabs, { view: "todo" as ViewId }],
+            active: "todo",
+            status: "Copied to To Do.",
+          };
+        }),
+      clearPendingTodo: () => set({ pendingTodo: null }),
+
       runSearch: (query) =>
         set((s) => {
           const exists = s.tabs.some((t) => t.view === "search");
@@ -146,6 +196,14 @@ export const useUI = create<UIState>()(
         }),
 
       sendCmd: (name) => set((s) => ({ cmd: { name, n: (s.cmd?.n ?? 0) + 1 } })),
+
+      openChat: (name) =>
+        set((s) => ({
+          openChats: s.openChats.includes(name) ? s.openChats : [...s.openChats, name],
+          status: `Chat with ${name}`,
+        })),
+      closeChat: (name) =>
+        set((s) => ({ openChats: s.openChats.filter((n) => n !== name) })),
     }),
     {
       name: "lotus-notes-ui",

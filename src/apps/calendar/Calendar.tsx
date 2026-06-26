@@ -228,6 +228,8 @@ function blankDraft(start: number): Draft {
 export default function Calendar() {
   const { calendar, addCalendarEntry, updateCalendarEntry, deleteCalendarEntry } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
+  const pendingCalendar = useUI((s) => s.pendingCalendar);
+  const clearPendingCalendar = useUI((s) => s.clearPendingCalendar);
 
   const [mode, setMode] = useState<Mode>("month");
   const [anchor, setAnchor] = useState<number>(Date.now()); // a ms within the current period
@@ -238,6 +240,23 @@ export default function Calendar() {
   // The selection tracks a MASTER id; an occurrence resolves back to its master.
   const selected =
     calendar.find((e) => e.id === (selectedId ? masterIdOf(selectedId) : null)) ?? null;
+
+  // Honour a "Copy Into New" handover from another module (e.g. a Mail memo):
+  // open the entry form prefilled with the subject + description. Mirrors how
+  // Mail consumes pendingMemo.
+  useEffect(() => {
+    if (pendingCalendar) {
+      const next = new Date();
+      next.setHours(next.getHours() + 1, 0, 0, 0); // top of the next hour
+      const start = next.getTime();
+      setDraft({
+        ...blankDraft(start),
+        subject: pendingCalendar.subject,
+        description: pendingCalendar.description,
+      });
+      clearPendingCalendar();
+    }
+  }, [pendingCalendar, clearPendingCalendar]);
 
   // Masters matching the search box (applied everywhere). Filtering on the
   // master is enough: occurrences inherit the master's searchable fields.

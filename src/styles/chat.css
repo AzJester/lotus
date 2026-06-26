@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Sametime chat windows — small beveled IM windows pinned bottom-right,
+   styled after the Notes 8 / Sametime 7 chat: hard 1px bevels, a glossy blue
+   title bar, small Tahoma type, and a chunky retro send button.
+   ========================================================================== */
+
+.chat-dock {
+  position: absolute;
+  right: 26px; /* clear of the sidebar icon rail */
+  bottom: 24px; /* sit above the status bar */
+  display: flex;
+  flex-direction: row-reverse; /* newest window nearest the right edge */
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 400;
+  pointer-events: none; /* let the dock area pass through; windows opt back in */
+}
+
+.chat-win {
+  pointer-events: auto;
+  width: 220px;
+  height: 268px;
+  display: flex;
+  flex-direction: column;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Glossy blue title bar, mirroring the app title chrome */
+.chat-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 4px 0 6px;
+  color: #fff;
+  font-weight: bold;
+  font-size: var(--fs-sm);
+  background: linear-gradient(180deg, var(--notes-blue-grad-a), var(--notes-blue-grad-b));
+  border-bottom: 1px solid #07307e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.45);
+}
+.chat-title-presence {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+.chat-title-presence.online {
+  background: #46c24a;
+}
+.chat-title-presence.away {
+  background: #f1c233;
+}
+.chat-title-presence.offline {
+  background: #b8b8b8;
+}
+.chat-title-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-close {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: #fff;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #f6a877 0%, #e8643a 38%, #cf3417 100%);
+  cursor: pointer;
+}
+.chat-close:hover {
+  filter: brightness(1.12);
+}
+.chat-close:active {
+  background: linear-gradient(180deg, #cf3417, #e8643a);
+}
+
+/* Scrolling message log (white "paper" pane, recessed) */
+.chat-log {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--white);
+  border-top: 1px solid var(--shadow-dark);
+  border-left: 1px solid var(--shadow-dark);
+  border-right: 1px solid var(--hl);
+  border-bottom: 1px solid var(--hl);
+  margin: 3px;
+  padding: 4px 5px;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.chat-msg {
+  margin: 2px 0;
+  word-wrap: break-word;
+}
+.chat-msg-who {
+  font-weight: bold;
+}
+.chat-msg.me .chat-msg-who {
+  color: var(--notes-blue-2);
+}
+.chat-msg.them .chat-msg-who {
+  color: #8a3b1d;
+}
+.chat-msg.system {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* Compose row: a recessed field + a beveled Send button */
+.chat-compose {
+  display: flex;
+  gap: 4px;
+  padding: 0 3px 4px;
+}
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  background: var(--white);
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  padding: 2px 4px;
+}
+.chat-send {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  background: var(--face);
+  color: var(--ink);
+  padding: 1px 9px;
+  cursor: default;
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--face-lighter);
+}
+.chat-send:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}

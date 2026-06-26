@@ -124,6 +124,8 @@ export default function Mail() {
   const setStatus = useUI((s) => s.setStatus);
   const pendingMemo = useUI((s) => s.pendingMemo);
   const clearMemo = useUI((s) => s.clearMemo);
+  const copyToCalendar = useUI((s) => s.copyToCalendar);
+  const copyToTodo = useUI((s) => s.copyToTodo);
   const cmd = useUI((s) => s.cmd);
   const lastCmd = useRef<number>(useUI.getState().cmd?.n ?? 0);
 
@@ -135,6 +137,8 @@ export default function Mail() {
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [colW, setColW] = useState({ who: 150, date: 112, size: 56 });
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [copyOpen, setCopyOpen] = useState(false);
+  const copyRef = useRef<HTMLDivElement>(null);
 
   // Respond to global keyboard commands while Mail is the active view.
   useEffect(() => {
@@ -162,6 +166,16 @@ export default function Mail() {
       clearMemo();
     }
   }, [pendingMemo, clearMemo]);
+
+  // Close the "Copy Into" dropdown when clicking outside it.
+  useEffect(() => {
+    if (!copyOpen) return;
+    const close = (e: MouseEvent) => {
+      if (copyRef.current && !copyRef.current.contains(e.target as Node)) setCopyOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [copyOpen]);
 
   const showsSender = nav === "sent" || nav === "drafts";
 
@@ -406,6 +420,15 @@ export default function Mail() {
     markRead(selected.id, !selected.read);
   }
 
+  // --- Copy Into New (cross-app handover) ---------------------------------
+  function copyInto(target: "calendar" | "todo") {
+    if (!selected) return;
+    const payload = { subject: selected.subject, description: selected.body };
+    if (target === "calendar") copyToCalendar(payload);
+    else copyToTodo(payload);
+    setCopyOpen(false);
+  }
+
   // --- render -------------------------------------------------------------
   return (
     <div className="app mail-app">
@@ -424,6 +447,28 @@ export default function Mail() {
           disabled={!selected}
         />
         <ActionButton icon="🗑️" label="Delete" onClick={del} disabled={!selected} />
+        <ActionSep />
+        <div className="copy-into" ref={copyRef} style={{ position: "relative" }}>
+          <ActionButton
+            icon="📋"
+            label="Copy Into"
+            caret
+            onClick={() => selected && setCopyOpen((o) => !o)}
+            disabled={!selected}
+          />
+          {copyOpen && selected && (
+            <div className="open-menu" style={{ top: "100%", left: 0 }}>
+              <div className="open-row" onMouseDown={() => copyInto("calendar")}>
+                <span className="open-row-ic">📅</span>
+                Calendar Entry
+              </div>
+              <div className="open-row" onMouseDown={() => copyInto("todo")}>
+                <span className="open-row-ic">✅</span>
+                To Do
+              </div>
+            </div>
+          )}
+        </div>
         <ActionSpacer />
         <div className="action-search">
           <input

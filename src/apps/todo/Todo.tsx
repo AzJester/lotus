@@ -5,7 +5,7 @@
 // classes (.app, .action-bar, .app-cols, .nav-pane, .list-pane, .preview-pane).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
 import type { Priority, TaskStatus, TodoTask } from "../../data/types";
@@ -127,6 +127,8 @@ const DUE_BUCKET_ORDER = ["Overdue", "Today", "This Week", "Later", "No Date"];
 export default function Todo() {
   const { todos, addTodo, updateTodo, deleteTodo } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
+  const pendingTodo = useUI((s) => s.pendingTodo);
+  const clearPendingTodo = useUI((s) => s.clearPendingTodo);
 
   const [nav, setNav] = useState<NavKey>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -140,6 +142,20 @@ export default function Todo() {
   const [now] = useState(() => Date.now());
   const todayStart = startOfDay(now);
   const selected = todos.find((t) => t.id === selectedId) ?? null;
+
+  // Honour a "Copy Into New" handover from another module (e.g. a Mail memo):
+  // open the New To Do dialog prefilled with the subject + description. Mirrors
+  // how Mail consumes pendingMemo.
+  useEffect(() => {
+    if (pendingTodo) {
+      setCreating({
+        ...emptyDraft(),
+        subject: pendingTodo.subject,
+        description: pendingTodo.description,
+      });
+      clearPendingTodo();
+    }
+  }, [pendingTodo, clearPendingTodo]);
 
   // --- filtered + sorted list for the current view ------------------------
   const visible = useMemo(() => {
