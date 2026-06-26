@@ -72,6 +72,8 @@ export function buildSeed(): SeedData {
       date: now - 2 * HOUR,
       read: false,
       flagged: true,
+      flagColor: "yellow",
+      hasAttachment: true,
       priority: "high",
     },
     {
@@ -88,6 +90,7 @@ export function buildSeed(): SeedData {
       date: now - 5 * HOUR,
       read: false,
       flagged: false,
+      hasAttachment: true,
       priority: "normal",
     },
     {
@@ -103,6 +106,7 @@ export function buildSeed(): SeedData {
       date: now - DAY - 3 * HOUR,
       read: true,
       flagged: true,
+      flagColor: "green",
       priority: "normal",
     },
     {
@@ -117,7 +121,8 @@ export function buildSeed(): SeedData {
         "Log in to the HR portal to review your selections.\n\nHuman Resources",
       date: now - DAY - 6 * HOUR,
       read: true,
-      flagged: false,
+      flagged: true,
+      flagColor: "yellow",
       priority: "normal",
     },
     {

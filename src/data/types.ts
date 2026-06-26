@@ -19,6 +19,8 @@ export type Priority = "high" | "normal" | "low";
 // ---------------------------------------------------------------------------
 export type MailFolder = "inbox" | "sent" | "drafts" | "trash";
 
+export type FlagColor = "red" | "yellow" | "green" | "blue" | "purple" | "orange";
+
 export interface MailMessage {
   id: ID;
   folder: MailFolder;
@@ -30,6 +32,10 @@ export interface MailMessage {
   date: number; // epoch ms
   read: boolean;
   flagged: boolean; // follow-up flag
+  /** Follow-up flag color (Notes colors rows by flag). Defaults to yellow when flagged. */
+  flagColor?: FlagColor;
+  /** Whether the memo carries an attachment (shows the paperclip column). */
+  hasAttachment?: boolean;
   priority: Priority;
 }
 

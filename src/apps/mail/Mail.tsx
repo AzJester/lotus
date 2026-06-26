@@ -19,7 +19,7 @@ import {
 import { fmtListDate, fmtDateTime, initials } from "../../lib/format";
 import "../../styles/mail.css";
 
-type NavKey = MailFolder | "followup" | "all";
+type NavKey = MailFolder | "followup" | "all" | "junk" | "chat";
 
 interface Compose {
   draftId: string | null; // existing draft being edited, if any
@@ -32,11 +32,23 @@ interface Compose {
 
 const FOLDERS: { key: NavKey; label: string; icon: string }[] = [
   { key: "inbox", label: "Inbox", icon: "📥" },
-  { key: "drafts", label: "Drafts", icon: "📝" },
+  { key: "drafts", label: "Drafts", icon: "📄" },
   { key: "sent", label: "Sent", icon: "📤" },
   { key: "followup", label: "Follow Up", icon: "🚩" },
-  { key: "all", label: "All Documents", icon: "🗂️" },
+  { key: "all", label: "All Documents", icon: "🗎" },
+  { key: "junk", label: "Junk", icon: "🚫" },
   { key: "trash", label: "Trash", icon: "🗑️" },
+  { key: "chat", label: "Chat History", icon: "💬" },
+];
+
+// Decorative navigator entries — real Notes views not modeled in this demo.
+const EXTRA_NAV = [
+  { label: "Views", icon: "🔎", twistie: true },
+  { label: "Folders", icon: "📁", twistie: true },
+  { label: "Catalog", icon: "📂", sub: true, count: 1 },
+  { label: "Archive", icon: "🗄️" },
+  { label: "Tools", icon: "🔧" },
+  { label: "Other Mail", icon: "✉️" },
 ];
 
 function parsePeople(raw: string): Person[] {
@@ -55,6 +67,14 @@ function parsePeople(raw: string): Person[] {
 }
 
 const peopleStr = (ppl: Person[]) => ppl.map((p) => p.name || p.email).join(", ");
+
+// A plausible document "size" for the Size column (attachments dominate it).
+function sizeOf(m: MailMessage): string {
+  const text = m.subject.length + m.body.length + peopleStr(m.to).length + peopleStr(m.cc).length;
+  const bytes = text * 9 + 700 + (m.hasAttachment ? 470000 : 0);
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}M`;
+  return `${Math.max(1, Math.round(bytes / 1024))}K`;
+}
 
 export default function Mail() {
   const {
@@ -92,9 +112,10 @@ export default function Mail() {
   }, [pendingMemo, clearMemo]);
 
   const messages = useMemo(() => {
-    let list = mail;
+    let list: MailMessage[];
     if (nav === "followup") list = mail.filter((m) => m.flagged && m.folder !== "trash");
     else if (nav === "all") list = mail.filter((m) => m.folder !== "trash");
+    else if (nav === "junk" || nav === "chat") list = [];
     else list = mail.filter((m) => m.folder === nav);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -216,7 +237,8 @@ export default function Mail() {
   }
   function toggleFlag() {
     if (!selected) return;
-    updateMail(selected.id, { flagged: !selected.flagged });
+    const on = !selected.flagged;
+    updateMail(selected.id, { flagged: on, flagColor: on ? selected.flagColor ?? "yellow" : undefined });
   }
   function toggleRead() {
     if (!selected) return;
@@ -256,7 +278,10 @@ export default function Mail() {
       <div className="app-cols">
         {/* Navigator */}
         <div className="nav-pane">
-          <div className="nav-title">{user.name}</div>
+          <div className="nav-title mail-nav-title">
+            <span>{user.name}</span>
+            <span className="nav-sub-label">on Local</span>
+          </div>
           <div className="nav-group">
             {FOLDERS.map((f) => {
               const count =
@@ -279,6 +304,20 @@ export default function Mail() {
                 </div>
               );
             })}
+            {EXTRA_NAV.map((e) => (
+              <div
+                key={e.label}
+                className={"nav-item" + (e.sub ? " nav-indent" : "")}
+                onClick={() => setStatus(`${e.label} is not available in this demo build.`)}
+              >
+                {e.twistie ? <span className="nav-twistie">▶</span> : <span className="nav-ic">{e.icon}</span>}
+                {e.twistie && <span className="nav-ic">{e.icon}</span>}
+                <span className="nav-label">
+                  {e.label}
+                  {e.count ? ` (${e.count})` : ""}
+                </span>
+              </div>
+            ))}
           </div>
           {nav === "trash" && (
             <div style={{ padding: 8 }}>
@@ -298,41 +337,55 @@ export default function Mail() {
             onCancel={() => setCompose(null)}
           />
         ) : (
-          <>
+          <div className="mail-stack">
             {/* Message list */}
             <div className="list-pane mail-list">
               <div className="view">
                 <div className="view-head">
-                  <div className="col" style={{ flex: "0 0 22px" }} title="Flag">🚩</div>
+                  <div className="col col-c" style={{ flex: "0 0 20px" }} title="Importance">!</div>
                   <div className="col" style={{ flex: "0 0 150px" }}>
-                    {showsSender ? "Recipient" : "Who"}
+                    {showsSender ? "Recipient" : "Sender"}
                   </div>
                   <div className="col" style={{ flex: 1 }}>Subject</div>
-                  <div className="col" style={{ flex: "0 0 96px" }}>Date</div>
+                  <div className="col" style={{ flex: "0 0 112px" }}>Date ▾</div>
+                  <div className="col col-r" style={{ flex: "0 0 50px" }}>Size</div>
+                  <div className="col col-c" style={{ flex: "0 0 20px" }} title="Read status">○</div>
+                  <div className="col col-c" style={{ flex: "0 0 20px" }} title="Attachment">📎</div>
+                  <div className="col col-c" style={{ flex: "0 0 20px" }} title="Follow up">⚑</div>
                 </div>
                 <div className="view-body">
                   {messages.length === 0 && <div className="view-empty">No documents in this view.</div>}
                   {messages.map((m) => {
                     const who = showsSender ? peopleStr(m.to) || "—" : m.from.name;
+                    const unread = !m.read && m.folder === "inbox";
                     return (
                       <div
                         key={m.id}
                         className={
                           "view-row" +
                           (m.id === selectedId ? " selected" : "") +
-                          (!m.read && m.folder === "inbox" ? " unread" : "") +
-                          (m.flagged ? " flagged" : "") +
-                          (m.priority === "high" ? " hot" : "")
+                          (unread ? " unread" : "") +
+                          (m.flagged ? " row-" + (m.flagColor ?? "yellow") : "")
                         }
                         onClick={() => selectMessage(m)}
                         onDoubleClick={() => (m.folder === "drafts" ? editDraft(m) : selectMessage(m))}
                       >
-                        <div className="col col-c" style={{ flex: "0 0 22px" }}>
-                          {m.flagged ? "🚩" : m.priority === "high" ? "❗" : ""}
+                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+                          {m.priority === "high" ? <span className="prio-high">!</span> : ""}
                         </div>
                         <div className="col" style={{ flex: "0 0 150px" }}>{who}</div>
                         <div className="col" style={{ flex: 1 }}>{m.subject}</div>
-                        <div className="col" style={{ flex: "0 0 96px" }}>{fmtListDate(m.date)}</div>
+                        <div className="col" style={{ flex: "0 0 112px" }}>{fmtListDate(m.date)}</div>
+                        <div className="col col-r" style={{ flex: "0 0 50px" }}>{sizeOf(m)}</div>
+                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+                          {unread ? <span className="unread-dot" /> : <span className="read-ring" />}
+                        </div>
+                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+                          {m.hasAttachment ? "📎" : ""}
+                        </div>
+                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+                          {m.flagged ? <span className={"flagmark " + (m.flagColor ?? "yellow")}>⚑</span> : ""}
+                        </div>
                       </div>
                     );
                   })}
@@ -340,7 +393,7 @@ export default function Mail() {
               </div>
             </div>
 
-            {/* Reading pane */}
+            {/* Reading pane (below the list, as in Notes 8) */}
             <div className="preview-pane">
               {selected ? (
                 <MemoReader msg={selected} isDraft={selected.folder === "drafts"} onEdit={() => editDraft(selected)} />
@@ -348,7 +401,7 @@ export default function Mail() {
                 <div className="preview-empty">Select a memo to read it.</div>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

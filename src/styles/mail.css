@@ -2,6 +2,25 @@
    Mail module
    ========================================================================== */
 
+/* Notes 8 stacks the reading pane BELOW the message list (not beside it). */
+.mail-stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.mail-stack .list-pane {
+  flex: 1 1 52%;
+  border-right: none;
+  border-bottom: 1px solid var(--shadow-dark);
+  min-height: 120px;
+}
+.mail-stack .preview-pane {
+  flex: 1 1 48%;
+  min-height: 120px;
+}
+
 .mail-list .view-head .col,
 .mail-list .view-row .col {
   border-right: none;
@@ -11,14 +30,39 @@
 .mail-app .nav-label.has-count {
   font-weight: bold;
 }
-
-/* Colored message rows (Notes-style): follow-up flagged = yellow, high
-   importance = red tint. Hover and selection still take precedence. */
-.mail-list .view-row.hot {
-  background: #fde6e1;
+.mail-app .mail-nav-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
 }
-.mail-list .view-row.flagged {
+.mail-app .nav-sub-label {
+  font-weight: normal;
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+}
+.mail-app .nav-indent {
+  padding-left: 26px;
+}
+
+/* Colored message rows by follow-up flag color (Notes 8 behavior).
+   Hover and selection still take precedence (declared last). */
+.mail-list .view-row.row-yellow {
   background: #fbf3c4;
+}
+.mail-list .view-row.row-green {
+  background: #d8efce;
+}
+.mail-list .view-row.row-red {
+  background: #fad9d4;
+}
+.mail-list .view-row.row-blue {
+  background: #d6e6fb;
+}
+.mail-list .view-row.row-orange {
+  background: #fde4c6;
+}
+.mail-list .view-row.row-purple {
+  background: #e8d9f3;
 }
 .mail-list .view-row:hover {
   background: #e8f0fb;
@@ -26,6 +70,40 @@
 .mail-list .view-row.selected {
   background: var(--sel);
   color: #fff;
+}
+
+/* Read / unread marker column */
+.mail-list .unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2f6fd0;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.25);
+}
+.mail-list .read-ring {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #9a9a9a;
+}
+
+/* Colored follow-up flag glyph */
+.mail-list .flagmark {
+  font-size: 12px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+.mail-list .flagmark.yellow { color: #e3b007; }
+.mail-list .flagmark.green { color: #3a9d3a; }
+.mail-list .flagmark.red { color: #d33f3f; }
+.mail-list .flagmark.blue { color: #2f6fd0; }
+.mail-list .flagmark.orange { color: #e07b1a; }
+.mail-list .flagmark.purple { color: #8a4fbf; }
+.mail-list .view-row.selected .flagmark,
+.mail-list .view-row.selected .read-ring {
+  color: #fff;
+  border-color: #fff;
 }
 
 /* Reading pane */

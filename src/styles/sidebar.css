@@ -17,13 +17,13 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  background: linear-gradient(180deg, #eef1f6, #e3e6ee);
+  background: linear-gradient(180deg, #f3eeda, #e7dfc4);
   border-right: 1px solid var(--shadow);
 }
 
-/* Collapsible panels */
+/* Collapsible panels — the Notes 8 tan/khaki header bars */
 .sb-panel {
-  border-bottom: 1px solid var(--shadow);
+  border-bottom: 1px solid #b8ac86;
 }
 .sb-panel-head {
   display: flex;
@@ -31,11 +31,15 @@
   gap: 5px;
   padding: 4px 7px;
   font-weight: bold;
-  color: #fff;
-  background: linear-gradient(180deg, #6f8fbf, #4166a3);
-  border-top: 1px solid #93acd1;
+  color: #3a3526;
+  background: linear-gradient(180deg, #f4eed6 0%, #e6dcb9 55%, #ddd0a6 100%);
+  border-top: 1px solid #fbf8ec;
+  box-shadow: inset 0 -1px 0 #c9bd95;
   cursor: pointer;
   white-space: nowrap;
+}
+.sb-panel-head:hover {
+  background: linear-gradient(180deg, #f9f4e2, #ebe2c4 55%, #e2d6ad);
 }
 .sb-twist {
   font-size: 8px;
@@ -115,6 +119,31 @@
   font-weight: bold;
   color: #fff;
   background: linear-gradient(135deg, #6f8fbf, #4166a3);
+}
+
+/* SideKick! mini map panel */
+.sb-sidekick {
+  padding: 4px 8px 8px;
+}
+.sb-sidekick .sb-text {
+  display: block;
+}
+.sb-map {
+  margin-top: 6px;
+  height: 92px;
+  border: 1px solid var(--shadow);
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(0deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)),
+    repeating-linear-gradient(0deg, #e9efe3 0 14px, #e2ebd9 14px 28px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(150, 170, 140, 0.4) 22px 23px),
+    repeating-linear-gradient(0deg, transparent 0 18px, rgba(150, 170, 140, 0.4) 18px 19px);
+}
+.sb-map-pin {
+  font-size: 20px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
 }
 
 /* Feeds */
