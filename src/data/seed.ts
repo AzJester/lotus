@@ -102,7 +102,7 @@ export function buildSeed(): SeedData {
         "Let me know if you want me to pull the same breakdown for the other two accounts.\n\nPriya",
       date: now - DAY - 3 * HOUR,
       read: true,
-      flagged: false,
+      flagged: true,
       priority: "normal",
     },
     {
