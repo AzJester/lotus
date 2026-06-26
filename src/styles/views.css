@@ -379,25 +379,47 @@ textarea.memo-body {
 
 /* --- Draggable pane splitters ------------------------------------------- */
 .pane-splitter {
-  flex: 0 0 5px;
+  flex: 0 0 7px;
   align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: col-resize;
-  background: var(--face);
-  border-left: 1px solid var(--hl);
-  border-right: 1px solid var(--shadow);
-  z-index: 3;
+  background: linear-gradient(90deg, var(--hl), var(--face) 45%, var(--shadow));
+  touch-action: none;
+  z-index: 5;
 }
-.pane-splitter:hover {
-  background: var(--sel-soft);
+.pane-splitter:hover,
+.pane-splitter.dragging {
+  background: var(--sel);
+}
+/* The grip: a little column of dots so it's obviously draggable. */
+.pane-splitter-grip {
+  width: 3px;
+  height: 28px;
+  color: var(--shadow-dark);
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1.4px);
+  background-size: 3px 5px;
+  background-repeat: repeat-y;
+  background-position: center;
+  opacity: 0.75;
+}
+.pane-splitter:hover .pane-splitter-grip,
+.pane-splitter.dragging .pane-splitter-grip {
+  color: #fff;
+  opacity: 1;
 }
 .pane-splitter.vertical {
-  flex: 0 0 5px;
+  flex: 0 0 7px;
   width: auto;
   cursor: row-resize;
-  border-left: none;
-  border-right: none;
-  border-top: 1px solid var(--hl);
-  border-bottom: 1px solid var(--shadow);
+  background: linear-gradient(180deg, var(--hl), var(--face) 45%, var(--shadow));
+}
+.pane-splitter.vertical .pane-splitter-grip {
+  width: 28px;
+  height: 3px;
+  background-size: 5px 3px;
+  background-repeat: repeat-x;
 }
 
 /* ==========================================================================

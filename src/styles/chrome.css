@@ -56,6 +56,37 @@
   text-shadow: 0 1px 1px rgba(150, 80, 0, 0.6);
 }
 
+/* About IBM Lotus Notes dialog */
+.about-box {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.about-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 8px;
+  margin-right: 0;
+}
+.about-icon .tb-appicon-mark {
+  font-size: 24px;
+}
+.about-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.about-text p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.about-version {
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font-size: var(--fs-sm);
+}
+
 .titlebar-title {
   font-weight: bold;
   font-size: var(--fs);

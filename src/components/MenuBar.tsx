@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUI, VIEWS } from "../data/ui";
 import type { ViewId } from "../data/ui";
 import { useNotes } from "../data/store";
+import { Dialog } from "./ui";
 
 interface Item {
   label?: string;
@@ -19,6 +20,7 @@ interface Item {
 
 export default function MenuBar() {
   const [open, setOpen] = useState<string | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const openView = useUI((s) => s.openView);
   const setStatus = useUI((s) => s.setStatus);
   const resetAll = useNotes((s) => s.resetAll);
@@ -144,16 +146,17 @@ export default function MenuBar() {
       { label: "Help Topics", accel: "F1", disabled: true },
       { sep: true },
       {
-        label: "About Lotus Notes",
+        label: "About IBM Lotus Notes",
         onClick: () => {
           setOpen(null);
-          setStatus("Lotus Notes — web recreation. Built with React.");
+          setAboutOpen(true);
         },
       },
     ],
   };
 
   return (
+    <>
     <div className="menubar" ref={barRef}>
       {Object.keys(menus).map((name) => (
         <div
@@ -190,5 +193,39 @@ export default function MenuBar() {
         </div>
       ))}
     </div>
+
+      {aboutOpen && (
+        <Dialog
+          title="About IBM Lotus Notes"
+          width={460}
+          onClose={() => setAboutOpen(false)}
+          footer={
+            <button className="btn" onClick={() => setAboutOpen(false)}>
+              OK
+            </button>
+          }
+        >
+          <div className="about-box">
+            <span className="tb-appicon about-icon" aria-hidden>
+              <span className="tb-appicon-mark">❋</span>
+            </span>
+            <div className="about-text">
+              <div className="about-title">IBM Lotus Notes — Web Edition</div>
+              <p>
+                Resurrected by <b>Dr. Shane Turner</b> for Gen X and Boomers everywhere.
+              </p>
+              <p>
+                No Domino servers were harmed in the making of this app. Side effects may
+                include flashbacks to dial-up, fondness for the SmartIcons toolbar, and the
+                sudden urge to replicate.
+              </p>
+              <div className="about-version">
+                Release 8.5 (web recreation) · Built with React · Your data stays in this browser.
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </>
   );
 }
