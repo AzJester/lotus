@@ -5,7 +5,8 @@
 // ============================================================================
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { idbStorage } from "./idb";
 
 export type ViewId =
   | "welcome"
@@ -89,6 +90,8 @@ interface UIState {
   cmd: UICommand | null;
   /** Open Sametime chat windows, keyed by buddy display name (no duplicates). */
   openChats: string[];
+  /** Whether the Replicator dialog is open (transient, not persisted). */
+  replicationOpen: boolean;
 
   openView: (view: ViewId) => void;
   closeTab: (view: ViewId) => void;
@@ -115,6 +118,10 @@ interface UIState {
   openChat: (name: string) => void;
   /** Close the named buddy's chat window. */
   closeChat: (name: string) => void;
+  /** Open the Replicator dialog. */
+  openReplication: () => void;
+  /** Close the Replicator dialog. */
+  closeReplication: () => void;
 }
 
 export const useUI = create<UIState>()(
@@ -130,6 +137,7 @@ export const useUI = create<UIState>()(
       searchQuery: "",
       cmd: null,
       openChats: [],
+      replicationOpen: false,
 
       openView: (view) =>
         set((s) => {
@@ -229,10 +237,14 @@ export const useUI = create<UIState>()(
         })),
       closeChat: (name) =>
         set((s) => ({ openChats: s.openChats.filter((n) => n !== name) })),
+
+      openReplication: () => set({ replicationOpen: true }),
+      closeReplication: () => set({ replicationOpen: false }),
     }),
     {
       name: "lotus-notes-ui",
       version: 1,
+      storage: createJSONStorage(() => idbStorage),
       // Persist only the desktop layout + theme, not transient status / compose requests.
       partialize: (s) => ({ tabs: s.tabs, active: s.active, theme: s.theme }),
     },

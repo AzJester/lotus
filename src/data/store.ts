@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Contact,
   ContactGroup,
@@ -17,10 +17,12 @@ import type {
   MailFolder,
   MailMessage,
   MailRule,
+  ReplicaSnapshot,
   TodoTask,
   UserProfile,
 } from "./types";
 import { buildSeed } from "./seed";
+import { idbStorage } from "./idb";
 
 export function uid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -40,6 +42,13 @@ export interface NotesState {
   discussion: DiscussionPost[];
   customFolders: CustomFolder[];
   mailRules: MailRule[];
+
+  // --- replication ---
+  /** The "server" replica: a serialized snapshot of every document database.
+   *  Excluded from exportAll. Merged against the local copy by replicateNow. */
+  server: ReplicaSnapshot;
+  /** Epoch ms of the last successful replication, or null if never run. */
+  lastReplicated: number | null;
 
   // --- profile ---
   setUser: (patch: Partial<UserProfile>) => void;
@@ -95,12 +104,121 @@ export interface NotesState {
   updatePost: (id: string, patch: Partial<DiscussionPost>) => void;
   deletePost: (id: string) => void; // also removes descendant replies
 
+  // --- replication ---
+  /** Merge the local databases against the server replica (two-way by id).
+   *  Returns how many documents were pulled to local / pushed to the server. */
+  replicateNow: () => { pulled: number; pushed: number };
+  /** Rough count of local documents not yet reflected in the server replica
+   *  (new ids or changed content). Used by the Replicator's status column. */
+  pendingChanges: () => number;
+
   // --- maintenance ---
   resetAll: () => void;
   /** Serialize the entire workspace to a JSON string (the "NSF" backup). */
   exportAll: () => string;
   /** Replace the workspace from an exported JSON string. Returns success. */
   importAll: (json: string) => boolean;
+}
+
+// The collections that participate in replication, in display order.
+type ReplCollection = keyof ReplicaSnapshot;
+const REPL_COLLECTIONS: ReplCollection[] = [
+  "mail",
+  "calendar",
+  "contacts",
+  "todos",
+  "journal",
+  "discussion",
+];
+
+/** A replicated document: every collection's element type carries an `id`. */
+type ReplDoc = ReplicaSnapshot[ReplCollection][number];
+
+/** Comparable timestamp for "keep the newer one": modified > date > start > 0. */
+function docStamp(doc: ReplDoc): number {
+  const d = doc as { modified?: number; date?: number; start?: number | null };
+  if (typeof d.modified === "number") return d.modified;
+  if (typeof d.date === "number") return d.date;
+  if (typeof d.start === "number") return d.start;
+  return 0;
+}
+
+/** Build the server replica from a fresh seed, plus one server-only inbox memo
+ *  so the very first Replicate visibly pulls a new message into the inbox. */
+function buildServerSnapshot(): ReplicaSnapshot {
+  const s = buildSeed();
+  const serverMemo: MailMessage = {
+    id: "srv-1",
+    folder: "inbox",
+    from: { name: "Domino Administrator", email: "admin@acme.example.com" },
+    to: [{ name: s.user.name, email: s.user.email }],
+    cc: [],
+    subject: "Replication: server is online",
+    body:
+      "This message originated on the Domino server replica.\n\n" +
+      "When you replicate, documents new to your local copy are pulled down and " +
+      "documents you created locally are pushed up to the server.\n\n— Domino Administrator",
+    date: Date.now(),
+    read: false,
+    flagged: false,
+    priority: "normal",
+    labels: [],
+  };
+  return {
+    mail: [serverMemo, ...s.mail],
+    calendar: s.calendar,
+    contacts: s.contacts,
+    todos: s.todos,
+    journal: s.journal,
+    discussion: s.discussion,
+  };
+}
+
+/** Merge two id-keyed collections, keeping the newer document on conflicts.
+ *  Returns the merged array plus how many ids were new to each side. */
+function mergeCollection<T extends ReplDoc>(
+  local: T[],
+  server: T[],
+): { merged: T[]; pulled: number; pushed: number } {
+  const localById = new Map<string, T>();
+  for (const d of local) localById.set(d.id, d);
+  const serverById = new Map<string, T>();
+  for (const d of server) serverById.set(d.id, d);
+
+  // Deterministic id order: local order first, then any server-only ids.
+  const order: string[] = [];
+  const seen = new Set<string>();
+  for (const d of local) {
+    if (!seen.has(d.id)) {
+      seen.add(d.id);
+      order.push(d.id);
+    }
+  }
+  for (const d of server) {
+    if (!seen.has(d.id)) {
+      seen.add(d.id);
+      order.push(d.id);
+    }
+  }
+
+  let pulled = 0;
+  let pushed = 0;
+  const merged: T[] = [];
+  for (const id of order) {
+    const l = localById.get(id);
+    const r = serverById.get(id);
+    if (l && r) {
+      // Conflict: keep the newer; ties prefer local.
+      merged.push(docStamp(r) > docStamp(l) ? r : l);
+    } else if (l) {
+      pushed++; // new-to-server
+      merged.push(l);
+    } else if (r) {
+      pulled++; // new-to-local
+      merged.push(r);
+    }
+  }
+  return { merged, pulled, pushed };
 }
 
 const seed = buildSeed();
@@ -118,6 +236,9 @@ export const useNotes = create<NotesState>()(
       discussion: seed.discussion,
       customFolders: seed.customFolders,
       mailRules: seed.mailRules,
+
+      server: buildServerSnapshot(),
+      lastReplicated: null,
 
       setUser: (patch) => set((s) => ({ user: { ...s.user, ...patch } })),
 
@@ -290,6 +411,64 @@ export const useNotes = create<NotesState>()(
           return { discussion: s.discussion.filter((p) => !toRemove.has(p.id)) };
         }),
 
+      replicateNow: () => {
+        const s = get();
+        const server = s.server;
+
+        const mMail = mergeCollection(s.mail, server.mail);
+        const mCal = mergeCollection(s.calendar, server.calendar);
+        const mCon = mergeCollection(s.contacts, server.contacts);
+        const mTodo = mergeCollection(s.todos, server.todos);
+        const mJour = mergeCollection(s.journal, server.journal);
+        const mDisc = mergeCollection(s.discussion, server.discussion);
+
+        const pulled =
+          mMail.pulled + mCal.pulled + mCon.pulled + mTodo.pulled + mJour.pulled + mDisc.pulled;
+        const pushed =
+          mMail.pushed + mCal.pushed + mCon.pushed + mTodo.pushed + mJour.pushed + mDisc.pushed;
+
+        const nextServer: ReplicaSnapshot = {
+          mail: mMail.merged,
+          calendar: mCal.merged,
+          contacts: mCon.merged,
+          todos: mTodo.merged,
+          journal: mJour.merged,
+          discussion: mDisc.merged,
+        };
+
+        // Both sides converge to the same merged result.
+        set({
+          mail: mMail.merged,
+          calendar: mCal.merged,
+          contacts: mCon.merged,
+          todos: mTodo.merged,
+          journal: mJour.merged,
+          discussion: mDisc.merged,
+          server: nextServer,
+          lastReplicated: Date.now(),
+        });
+
+        return { pulled, pushed };
+      },
+
+      pendingChanges: () => {
+        const s = get();
+        const server = s.server;
+        let pending = 0;
+        for (const name of REPL_COLLECTIONS) {
+          const local = s[name] as ReplDoc[];
+          const remote = server[name] as ReplDoc[];
+          const remoteById = new Map<string, ReplDoc>();
+          for (const d of remote) remoteById.set(d.id, d);
+          for (const doc of local) {
+            const match = remoteById.get(doc.id);
+            // Unsynced when the id is missing on the server or the content differs.
+            if (!match || JSON.stringify(match) !== JSON.stringify(doc)) pending++;
+          }
+        }
+        return pending;
+      },
+
       resetAll: () => {
         const fresh = buildSeed();
         set({
@@ -303,6 +482,8 @@ export const useNotes = create<NotesState>()(
           discussion: fresh.discussion,
           customFolders: fresh.customFolders,
           mailRules: fresh.mailRules,
+          server: buildServerSnapshot(),
+          lastReplicated: null,
         });
       },
 
@@ -364,6 +545,7 @@ export const useNotes = create<NotesState>()(
     {
       name: "lotus-notes-db",
       version: 1,
+      storage: createJSONStorage(() => idbStorage),
     },
   ),
 );
