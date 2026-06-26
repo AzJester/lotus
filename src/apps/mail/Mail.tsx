@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
-import type { MailFolder, MailMessage, Person, Priority } from "../../data/types";
+import type { Attachment, MailFolder, MailMessage, Person, Priority } from "../../data/types";
 import {
   ActionBar,
   ActionButton,
@@ -26,7 +26,9 @@ interface Compose {
   to: string;
   cc: string;
   subject: string;
-  body: string;
+  body: string; // plain-text fallback (for search/snippets)
+  bodyHtml: string; // rich-text HTML
+  attachments: Attachment[];
   priority: Priority;
 }
 
@@ -67,6 +69,18 @@ function parsePeople(raw: string): Person[] {
 }
 
 const peopleStr = (ppl: Person[]) => ppl.map((p) => p.name || p.email).join(", ");
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const textToHtml = (s: string) => escapeHtml(s).replace(/\n/g, "<br>");
+function htmlToText(html: string): string {
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  return d.textContent || "";
+}
+const hasAttach = (m: MailMessage) => !!(m.hasAttachment || (m.attachments && m.attachments.length));
+const fmtBytes = (n: number) =>
+  n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
 
 // A plausible document "size" for the Size column (attachments dominate it).
 function rawBytes(m: MailMessage): number {
@@ -141,6 +155,8 @@ export default function Mail() {
         cc: "",
         subject: pendingMemo.subject,
         body: "",
+        bodyHtml: "",
+        attachments: [],
         priority: "normal",
       });
       clearMemo();
@@ -253,7 +269,7 @@ export default function Mail() {
         <div className="col col-c" style={{ flex: "0 0 20px" }}>
           {unread ? <span className="unread-dot" /> : <span className="read-ring" />}
         </div>
-        <div className="col col-c" style={{ flex: "0 0 20px" }}>{m.hasAttachment ? "📎" : ""}</div>
+        <div className="col col-c" style={{ flex: "0 0 20px" }}>{hasAttach(m) ? "📎" : ""}</div>
         <div className="col col-c" style={{ flex: "0 0 20px" }}>
           {m.flagged ? <span className={"flagmark " + (m.flagColor ?? "yellow")}>⚑</span> : ""}
         </div>
@@ -268,7 +284,7 @@ export default function Mail() {
 
   // --- compose helpers ----------------------------------------------------
   function newMemo() {
-    setCompose({ draftId: null, to: "", cc: "", subject: "", body: "", priority: "normal" });
+    setCompose({ draftId: null, to: "", cc: "", subject: "", body: "", bodyHtml: "", attachments: [], priority: "normal" });
   }
   function editDraft(m: MailMessage) {
     setCompose({
@@ -277,8 +293,17 @@ export default function Mail() {
       cc: peopleStr(m.cc),
       subject: m.subject,
       body: m.body,
+      bodyHtml: m.bodyHtml ?? textToHtml(m.body),
+      attachments: m.attachments ?? [],
       priority: m.priority,
     });
+  }
+  function quote(kind: "Original" | "Forwarded"): { body: string; html: string } {
+    const m = selected!;
+    const head = `----- ${kind} Message -----\nFrom: ${m.from.name}\nDate: ${fmtDateTime(m.date)}\nSubject: ${m.subject}`;
+    const body = `\n\n${head}\n\n${m.body}`;
+    const html = `<br><br><div class="memo-quote">${textToHtml(head)}<br><br>${m.bodyHtml ?? textToHtml(m.body)}</div>`;
+    return { body, html };
   }
   function reply(all: boolean) {
     if (!selected) return;
@@ -290,28 +315,35 @@ export default function Mail() {
           ),
         )
       : "";
+    const q = quote("Original");
     setCompose({
       draftId: null,
       to: peopleStr([selected.from]),
       cc,
       subject: /^re:/i.test(selected.subject) ? selected.subject : `RE: ${selected.subject}`,
-      body: `\n\n----- Original Message -----\nFrom: ${selected.from.name}\nDate: ${fmtDateTime(selected.date)}\nSubject: ${selected.subject}\n\n${selected.body}`,
+      body: q.body,
+      bodyHtml: q.html,
+      attachments: [],
       priority: "normal",
     });
   }
   function forward() {
     if (!selected) return;
+    const q = quote("Forwarded");
     setCompose({
       draftId: null,
       to: "",
       cc: "",
       subject: /^fw:/i.test(selected.subject) ? selected.subject : `Fw: ${selected.subject}`,
-      body: `\n\n----- Forwarded Message -----\nFrom: ${selected.from.name}\nDate: ${fmtDateTime(selected.date)}\nSubject: ${selected.subject}\n\n${selected.body}`,
+      body: q.body,
+      bodyHtml: q.html,
+      attachments: selected.attachments ?? [],
       priority: "normal",
     });
   }
 
   function buildMessage(c: Compose, folder: MailFolder): MailMessage {
+    const plain = c.bodyHtml ? htmlToText(c.bodyHtml) : c.body;
     return {
       id: c.draftId ?? uid(),
       folder,
@@ -319,7 +351,10 @@ export default function Mail() {
       to: parsePeople(c.to),
       cc: parsePeople(c.cc),
       subject: c.subject || "(No subject)",
-      body: c.body,
+      body: plain,
+      bodyHtml: c.bodyHtml || undefined,
+      attachments: c.attachments.length ? c.attachments : undefined,
+      hasAttachment: c.attachments.length > 0,
       date: Date.now(),
       read: true,
       flagged: false,
@@ -456,6 +491,7 @@ export default function Mail() {
 
         {compose ? (
           <ComposeForm
+            key={compose.draftId ?? "new:" + compose.subject}
             compose={compose}
             setCompose={setCompose}
             onSend={doSend}
@@ -571,7 +607,21 @@ function MemoReader({ msg, isDraft, onEdit }: { msg: MailMessage; isDraft: boole
         </div>
         {isDraft && <button className="btn" onClick={onEdit}>Edit Draft</button>}
       </div>
-      <div className="memo-body">{msg.body}</div>
+      {msg.attachments && msg.attachments.length > 0 && (
+        <div className="memo-attachments">
+          {msg.attachments.map((a, i) => (
+            <a key={i} className="attach-chip" href={a.dataUrl} download={a.name} title={`${a.name} (${fmtBytes(a.size)})`}>
+              📎 <span className="attach-name">{a.name}</span>
+              <span className="attach-size">{fmtBytes(a.size)}</span>
+            </a>
+          ))}
+        </div>
+      )}
+      {msg.bodyHtml ? (
+        <div className="memo-body" dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
+      ) : (
+        <div className="memo-body">{msg.body}</div>
+      )}
     </div>
   );
 }
@@ -591,6 +641,34 @@ function ComposeForm({
   onCancel: () => void;
 }) {
   const set = (patch: Partial<Compose>) => setCompose({ ...compose, ...patch });
+  const editorRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Seed the rich-text editor once for this compose session (keyed remount).
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = compose.bodyHtml || "";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const exec = (cmd: string) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd);
+    if (editorRef.current) set({ bodyHtml: editorRef.current.innerHTML });
+  };
+
+  const onPickFiles = (files: FileList | null) => {
+    if (!files || !files.length) return;
+    const readers = Array.from(files).map(
+      (f) =>
+        new Promise<Attachment>((resolve) => {
+          const r = new FileReader();
+          r.onload = () => resolve({ name: f.name, type: f.type || "application/octet-stream", size: f.size, dataUrl: String(r.result) });
+          r.readAsDataURL(f);
+        }),
+    );
+    Promise.all(readers).then((added) => set({ attachments: [...compose.attachments, ...added] }));
+  };
+
   return (
     <div className="compose-pane">
       <div className="compose-actions">
@@ -622,12 +700,41 @@ function ComposeForm({
           <input type="text" value={compose.subject} onChange={(e) => set({ subject: e.target.value })} />
         </div>
       </div>
-      <textarea
+
+      {/* Formatting + attach toolbar */}
+      <div className="compose-format">
+        <button className="fmt-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); exec("bold"); }}><b>B</b></button>
+        <button className="fmt-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); exec("italic"); }}><i>I</i></button>
+        <button className="fmt-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); exec("underline"); }}><u>U</u></button>
+        <span className="fmt-sep" />
+        <button className="fmt-btn" title="Bulleted list" onMouseDown={(e) => { e.preventDefault(); exec("insertUnorderedList"); }}>• ☰</button>
+        <button className="fmt-btn" title="Numbered list" onMouseDown={(e) => { e.preventDefault(); exec("insertOrderedList"); }}>1. ☰</button>
+        <span className="fmt-sep" />
+        <button className="fmt-btn" title="Attach file" onClick={() => fileRef.current?.click()}>📎 Attach</button>
+        <input ref={fileRef} type="file" multiple style={{ display: "none" }}
+          onChange={(e) => { onPickFiles(e.target.files); e.target.value = ""; }} />
+      </div>
+
+      {compose.attachments.length > 0 && (
+        <div className="compose-attachments">
+          {compose.attachments.map((a, i) => (
+            <span key={i} className="attach-chip">
+              📎 <span className="attach-name">{a.name}</span>
+              <span className="attach-size">{fmtBytes(a.size)}</span>
+              <span className="attach-x" title="Remove"
+                onClick={() => set({ attachments: compose.attachments.filter((_, j) => j !== i) })}>✕</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div
+        ref={editorRef}
         className="memo-body compose-body"
-        value={compose.body}
-        autoFocus
-        onChange={(e) => set({ body: e.target.value })}
-        placeholder="Type your message…"
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder="Type your message…"
+        onInput={(e) => set({ bodyHtml: (e.target as HTMLDivElement).innerHTML })}
       />
     </div>
   );

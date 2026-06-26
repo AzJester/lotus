@@ -21,6 +21,13 @@ export type MailFolder = "inbox" | "sent" | "drafts" | "trash";
 
 export type FlagColor = "red" | "yellow" | "green" | "blue" | "purple" | "orange";
 
+export interface Attachment {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string;
+}
+
 export interface MailMessage {
   id: ID;
   folder: MailFolder;
@@ -29,6 +36,8 @@ export interface MailMessage {
   cc: Person[];
   subject: string;
   body: string;
+  /** Rich-text HTML body (when composed with formatting). Falls back to `body`. */
+  bodyHtml?: string;
   date: number; // epoch ms
   read: boolean;
   flagged: boolean; // follow-up flag
@@ -36,6 +45,8 @@ export interface MailMessage {
   flagColor?: FlagColor;
   /** Whether the memo carries an attachment (shows the paperclip column). */
   hasAttachment?: boolean;
+  /** Actual attached files (stored inline as data URLs). */
+  attachments?: Attachment[];
   priority: Priority;
 }
 
