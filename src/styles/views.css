@@ -1,0 +1,378 @@
+/* ==========================================================================
+   Lotus Notes — shared application layout
+   Every module (Mail, Calendar, Contacts, To Do, Notebook, Discussion) builds
+   from these classes so the apps look and behave consistently:
+     .app  ............. module root (fills the work view)
+     .action-bar ....... the green action button strip across the top
+     .app-cols ......... horizontal split: navigator | list | preview
+     .nav-pane ......... left navigator (folders / views)
+     .list-pane ........ middle document list
+     .preview-pane ..... reading pane / form host
+     .view ............. a column list (header + rows)
+     .form ............. a document form (memo, appointment, contact, ...)
+   ========================================================================== */
+
+.app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--window);
+}
+
+/* --- Action bar --------------------------------------------------------- */
+.action-bar {
+  display: flex;
+  align-items: stretch;
+  height: 26px;
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, var(--action-green-2), var(--action-green));
+  border-bottom: 1px solid var(--shadow);
+  box-shadow: inset 0 1px 0 #fff;
+  padding: 0 2px;
+}
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: var(--fs);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  background: transparent;
+}
+.action-btn .ic {
+  font-size: 13px;
+}
+.action-btn:hover:not(.disabled) {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow);
+  border-bottom: 1px solid var(--shadow);
+  background: rgba(255, 255, 255, 0.4);
+}
+.action-btn:active:not(.disabled) {
+  border-color: var(--shadow) var(--hl) var(--hl) var(--shadow);
+}
+.action-btn.disabled {
+  color: var(--shadow);
+}
+.action-btn .caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.action-sep {
+  width: 0;
+  border-left: 1px solid var(--shadow);
+  border-right: 1px solid var(--hl);
+  margin: 4px 3px;
+}
+.action-spacer {
+  flex: 1;
+}
+.action-search {
+  display: flex;
+  align-items: center;
+  margin: auto 6px;
+}
+.action-search input {
+  height: 19px;
+  width: 150px;
+}
+
+/* --- Column split ------------------------------------------------------- */
+.app-cols {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.nav-pane {
+  width: 196px;
+  flex: 0 0 196px;
+  background: var(--face-light);
+  border-right: 1px solid var(--shadow);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.nav-title {
+  padding: 5px 8px;
+  font-weight: bold;
+  font-size: var(--fs);
+  color: var(--ink);
+  background: linear-gradient(180deg, #e9e6df, #d8d4cb);
+  border-bottom: 1px solid var(--shadow);
+}
+.nav-group {
+  padding: 3px 0;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 10px;
+  font-size: var(--fs);
+  white-space: nowrap;
+}
+.nav-item .nav-ic {
+  width: 16px;
+  text-align: center;
+  flex: 0 0 16px;
+}
+.nav-item .nav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-item .nav-count {
+  color: var(--unread);
+  font-weight: bold;
+  font-size: var(--fs-sm);
+}
+.nav-item:hover {
+  background: var(--sel-soft);
+}
+.nav-item.active {
+  background: var(--sel);
+  color: #fff;
+}
+.nav-item.active .nav-count {
+  color: #fff;
+}
+.nav-twistie {
+  display: inline-block;
+  width: 10px;
+  font-size: 9px;
+  color: var(--ink-muted);
+}
+.nav-sub .nav-item {
+  padding-left: 26px;
+}
+
+/* --- Document list ------------------------------------------------------ */
+.list-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border-right: 1px solid var(--shadow);
+  overflow: hidden;
+}
+
+.view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--white);
+}
+.view-head {
+  display: flex;
+  align-items: stretch;
+  height: 21px;
+  background: linear-gradient(180deg, #eeebe4, #dcd8cf);
+  border-bottom: 1px solid var(--shadow);
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+}
+.view-head .col {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: var(--ink-soft);
+  border-right: 1px solid var(--grid);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.view-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.view-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  border-bottom: 1px solid var(--grid-soft);
+  font-size: var(--fs);
+}
+.view-row .col {
+  padding: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.view-row:hover {
+  background: #eef3fb;
+}
+.view-row.selected {
+  background: var(--sel);
+  color: #fff;
+}
+.view-row.unread {
+  color: var(--unread);
+  font-weight: bold;
+}
+.view-row.unread.selected {
+  color: #fff;
+}
+.view-empty {
+  padding: 24px;
+  color: var(--ink-muted);
+  text-align: center;
+  font-style: italic;
+}
+.col-c {
+  justify-content: center;
+}
+.col-r {
+  justify-content: flex-end;
+}
+
+/* --- Preview / form host ------------------------------------------------ */
+.preview-pane {
+  flex: 1.3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  overflow: hidden;
+}
+.preview-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  font-style: italic;
+  background: var(--face-lighter);
+}
+
+/* --- Document form ------------------------------------------------------ */
+.form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--white);
+}
+.form-header {
+  background: linear-gradient(180deg, #fcfbf3, #f3efe0);
+  border-bottom: 1px solid var(--shadow);
+  padding: 8px 12px;
+}
+.form-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--ink);
+}
+.field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 12px;
+}
+.field-label {
+  flex: 0 0 92px;
+  text-align: right;
+  color: var(--ink-soft);
+  font-size: var(--fs-sm);
+  padding-top: 3px;
+  font-weight: bold;
+}
+.field-val {
+  flex: 1;
+  min-width: 0;
+}
+.field-val input,
+.field-val select,
+.field-val textarea {
+  width: 100%;
+}
+.field-static {
+  padding-top: 2px;
+}
+.memo-body {
+  flex: 1;
+  min-height: 160px;
+  margin: 8px 12px 12px;
+  padding: 10px 12px;
+  background: var(--memo-yellow);
+  border: 1px solid var(--shadow);
+  font-family: var(--font-doc);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-y: auto;
+}
+textarea.memo-body {
+  resize: none;
+}
+
+/* --- Misc helpers ------------------------------------------------------- */
+.tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: var(--fs-xs);
+  background: var(--sel-soft);
+  color: var(--ink-soft);
+}
+.prio-high {
+  color: var(--unread);
+}
+.muted {
+  color: var(--ink-muted);
+}
+.center-msg {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* --- Modal dialog (Notes InfoBox style) --------------------------------- */
+.modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.15);
+  display: grid;
+  place-items: center;
+  z-index: 500;
+}
+.modal {
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.4);
+  min-width: 340px;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+}
+.modal-title {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: #fff;
+  font-weight: bold;
+  background: linear-gradient(180deg, var(--notes-blue-grad-a), var(--notes-blue-grad-b));
+}
+.modal-body {
+  padding: 14px 16px;
+}
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 12px;
+}

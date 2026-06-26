@@ -1,0 +1,91 @@
+/* ==========================================================================
+   Notebook / Journal module
+   Reuses the shared layout (.app, .nav-pane, .list-pane, .preview-pane,
+   .view, .form, .memo-body) and adds only the chrome unique to the note
+   editor: a subject/category header row, a subtle timestamp line, and the
+   yellow legal-pad body that fills the form.
+   ========================================================================== */
+
+.notebook-list .view-head .col,
+.notebook-list .view-row .col {
+  border-right: none;
+}
+
+/* The editable note form fills the preview pane top to bottom. */
+.note-form {
+  overflow: hidden; /* the body textarea owns the scroll */
+}
+
+/* --- Header: subject + category ---------------------------------------- */
+.note-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
+  border-bottom: 1px solid var(--shadow);
+  flex: 0 0 auto;
+}
+.note-subject {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 2px 4px;
+}
+.note-subject:hover {
+  border-color: var(--shadow);
+  background: var(--white);
+}
+.note-subject:focus {
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  background: var(--white);
+}
+.note-cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.note-cat label {
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: var(--ink-soft);
+}
+.note-cat-input {
+  width: 130px;
+}
+
+/* --- Timestamps -------------------------------------------------------- */
+.note-meta {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  font-size: var(--fs-sm);
+  background: #fcfbf3;
+  border-bottom: 1px solid var(--grid-soft);
+}
+
+/* --- Body (yellow legal-pad memo) -------------------------------------- */
+.note-body {
+  flex: 1;
+  min-height: 0;
+  margin: 8px 12px;
+}
+
+/* --- Footer actions ---------------------------------------------------- */
+.note-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 10px;
+}
+.note-actions .btn.primary {
+  font-weight: bold;
+  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+}

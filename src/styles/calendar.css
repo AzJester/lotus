@@ -1,0 +1,354 @@
+/* ==========================================================================
+   Calendar module
+   Adds only what is unique to the calendar; layout, action bar, nav pane,
+   list views and the modal all come from views.css / tokens.css.
+   ========================================================================== */
+
+/* The big current-period label that sits in the action bar. */
+.cal-period {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: bold;
+  font-size: var(--fs);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* --- Navigator legend --------------------------------------------------- */
+.cal-legend {
+  padding: 4px 8px 8px;
+}
+.cal-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+.cal-swatch {
+  flex: 0 0 11px;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--shadow-dark);
+}
+
+/* --- Calendar surface (host for every view mode) ------------------------ */
+.cal-surface {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  overflow: hidden;
+}
+
+/* The All-Entries list reuses .list-pane; drop its right border so it fills. */
+.cal-all {
+  border-right: none;
+}
+.cal-type-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+/* --- Shared chip (month cells + all-day rows) --------------------------- */
+.cal-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 4px;
+  margin-bottom: 2px;
+  border-radius: 2px;
+  color: #fff;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+.cal-chip:hover {
+  filter: brightness(1.1);
+}
+.cal-chip.selected {
+  outline: 2px solid var(--sel);
+  outline-offset: -1px;
+  box-shadow: 0 0 0 1px #fff inset;
+}
+.cal-chip-time {
+  font-weight: bold;
+  opacity: 0.9;
+}
+.cal-chip-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   Month view
+   ========================================================================== */
+.cal-month {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.cal-month-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, #eeebe4, #dcd8cf);
+  border-bottom: 1px solid var(--shadow);
+}
+.cal-month-dow {
+  padding: 3px 6px;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: var(--ink-soft);
+  text-align: center;
+  border-right: 1px solid var(--grid);
+}
+.cal-month-dow:last-child {
+  border-right: none;
+}
+.cal-month-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  min-height: 0;
+  overflow-y: auto;
+}
+.cal-cell {
+  border-right: 1px solid var(--grid-soft);
+  border-bottom: 1px solid var(--grid-soft);
+  background: var(--white);
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cal-cell.outside {
+  background: var(--face-lighter);
+}
+.cal-cell.outside .cal-cell-num {
+  color: var(--ink-muted);
+}
+.cal-cell.today {
+  background: #fffce0;
+}
+.cal-cell.today .cal-cell-num {
+  background: var(--sel);
+  color: #fff;
+  border-radius: 9px;
+  padding: 0 5px;
+}
+.cal-cell-num {
+  align-self: flex-end;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: var(--ink-soft);
+  padding: 2px 5px 0;
+  line-height: 1.3;
+}
+.cal-cell-list {
+  flex: 1;
+  padding: 1px 3px 3px;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   Day / Week / Work Week time grid
+   The grid uses a fixed-width hour gutter plus an equal-share day column for
+   each day in view (day view sets --cols:1, which makes the single column wide).
+   ========================================================================== */
+.cal-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  --gutter: 52px;
+}
+.cal-grid-head {
+  display: flex;
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, #eeebe4, #dcd8cf);
+  border-bottom: 1px solid var(--shadow);
+  padding-right: 16px; /* leave room for the body's scrollbar */
+}
+.cal-gutter-head {
+  flex: 0 0 var(--gutter);
+  border-right: 1px solid var(--grid);
+}
+.cal-day-head {
+  flex: 1 1 0;
+  text-align: center;
+  padding: 3px 4px;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: var(--ink-soft);
+  border-right: 1px solid var(--grid);
+}
+.cal-day-head:last-child {
+  border-right: none;
+}
+.cal-day-head.today {
+  background: #fffce0;
+  color: var(--sel);
+}
+.cal-day-num {
+  font-size: var(--fs);
+}
+
+/* All-day strip above the hour grid. */
+.cal-allday {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 22px;
+  max-height: 76px;
+  background: var(--face-lighter);
+  border-bottom: 1px solid var(--shadow);
+  padding-right: 16px;
+  overflow-y: auto;
+}
+.cal-allday-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: var(--fs-xs);
+  font-weight: bold;
+  color: var(--ink-muted);
+  padding-right: 5px;
+}
+.cal-allday-cell {
+  flex: 1 1 0;
+  border-right: 1px solid var(--grid-soft);
+  padding: 2px 3px;
+  min-width: 0;
+}
+.cal-allday-cell:last-child {
+  border-right: none;
+}
+
+.cal-gutter {
+  flex: 0 0 var(--gutter);
+  border-right: 1px solid var(--grid);
+}
+
+.cal-grid-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  background: var(--white);
+}
+.cal-grid-inner {
+  display: flex;
+  position: relative;
+}
+.cal-hours {
+  position: relative;
+}
+.cal-hour {
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--grid-soft);
+  font-size: var(--fs-xs);
+  color: var(--ink-muted);
+  text-align: right;
+  padding: 1px 5px 0 0;
+}
+.cal-daycol {
+  flex: 1 1 0;
+  position: relative;
+  border-right: 1px solid var(--grid-soft);
+  min-width: 0;
+}
+.cal-daycol:last-child {
+  border-right: none;
+}
+.cal-slot {
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--grid-soft);
+}
+.cal-slot:hover {
+  background: var(--sel-soft);
+}
+
+/* Positioned timed-entry blocks. */
+.cal-block {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  box-sizing: border-box;
+  border: 1px solid;
+  border-radius: 2px;
+  padding: 1px 4px;
+  color: #fff;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 1px 1px 2px rgba(0, 0, 0, 0.25);
+}
+.cal-block:hover {
+  filter: brightness(1.08);
+}
+.cal-block.selected {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px var(--sel);
+}
+.cal-block-time {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-block-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-block-loc {
+  opacity: 0.85;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   Entry form (inside the shared modal)
+   ========================================================================== */
+.cal-form {
+  overflow: visible;
+}
+.cal-form .field-val select,
+.cal-form .field-val input[type="text"],
+.cal-form .field-val input[type="datetime-local"],
+.cal-form .field-val textarea {
+  width: 100%;
+}
+.cal-form textarea {
+  resize: vertical;
+  font-family: var(--font-ui);
+}
+.cal-check {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 16px;
+  font-size: var(--fs);
+}
+.cal-check input {
+  margin-right: 4px;
+}
+.cal-bad {
+  border-color: var(--unread) !important;
+  background: #fff4f4;
+}

@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Discussion module — threaded team discussion database.
+   Only adds the few classes unique to this view (thread indentation, the
+   in-row twistie, and the document reader head). Everything else reuses the
+   shared layout classes from views.css.
+   ========================================================================== */
+
+.disc-list .view-head .col,
+.disc-list .view-row .col {
+  border-right: none;
+}
+
+/* The Topic column lays its pieces out in a row so indentation, the twistie
+   and the subject line up on the row baseline. */
+.disc-list .view-row .col:first-child,
+.disc-list .view-head .col:first-child {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Per-depth indentation spacer; width is set inline from the node depth. */
+.disc-indent {
+  flex: 0 0 auto;
+  display: inline-block;
+  height: 1px;
+}
+
+/* The collapse/expand control sitting before each subject. */
+.disc-twistie {
+  flex: 0 0 14px;
+  width: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+.disc-twistie.disc-leaf {
+  cursor: default;
+  color: var(--ink-muted);
+  font-weight: bold;
+}
+.view-row.selected .disc-twistie,
+.view-row.selected .disc-twistie .nav-twistie {
+  color: #fff;
+}
+
+.disc-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Reading pane ------------------------------------------------------- */
+.disc-reader {
+  overflow-y: auto;
+}
+.disc-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
+  border-bottom: 1px solid var(--shadow);
+}
+.disc-headlines {
+  flex: 1;
+  min-width: 0;
+}
+.disc-subject-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.disc-line {
+  font-size: var(--fs);
+  line-height: 1.6;
+}
+.disc-roottag {
+  font-size: var(--fs-sm);
+}
+.disc-head-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.disc-body {
+  font-family: var(--font-doc);
+}
+
+/* --- Compose ----------------------------------------------------------- */
+.disc-compose-mode {
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  margin-right: 8px;
+}

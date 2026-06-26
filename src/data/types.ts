@@ -1,0 +1,131 @@
+// ============================================================================
+// Lotus Notes — domain model
+// Notes stores everything as "documents" inside "databases". We model each
+// database as a typed collection. These types are the shared contract every
+// application module reads and writes through the store (see store.ts).
+// ============================================================================
+
+export type ID = string;
+
+export interface Person {
+  name: string;
+  email: string;
+}
+
+export type Priority = "high" | "normal" | "low";
+
+// ---------------------------------------------------------------------------
+// Mail (the Memo form)
+// ---------------------------------------------------------------------------
+export type MailFolder = "inbox" | "sent" | "drafts" | "trash";
+
+export interface MailMessage {
+  id: ID;
+  folder: MailFolder;
+  from: Person;
+  to: Person[];
+  cc: Person[];
+  subject: string;
+  body: string;
+  date: number; // epoch ms
+  read: boolean;
+  flagged: boolean; // follow-up flag
+  priority: Priority;
+}
+
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+export type CalEntryType =
+  | "appointment"
+  | "meeting"
+  | "reminder"
+  | "event"
+  | "anniversary";
+
+export interface CalendarEntry {
+  id: ID;
+  type: CalEntryType;
+  subject: string;
+  location: string;
+  start: number; // epoch ms
+  end: number; // epoch ms
+  allDay: boolean;
+  description: string;
+  invitees: Person[];
+  category: string;
+  alarm: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Contacts (the Personal Address Book)
+// ---------------------------------------------------------------------------
+export interface Contact {
+  id: ID;
+  firstName: string;
+  lastName: string;
+  email: string;
+  company: string;
+  title: string;
+  workPhone: string;
+  cellPhone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  category: string;
+  comments: string;
+}
+
+// ---------------------------------------------------------------------------
+// To Do
+// ---------------------------------------------------------------------------
+export type TaskStatus = "not-started" | "in-progress" | "complete" | "deferred";
+
+export interface TodoTask {
+  id: ID;
+  subject: string;
+  description: string;
+  start: number | null;
+  due: number | null;
+  priority: Priority;
+  status: TaskStatus;
+  category: string;
+  completedDate: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notebook / Journal
+// ---------------------------------------------------------------------------
+export interface JournalEntry {
+  id: ID;
+  subject: string;
+  body: string;
+  category: string;
+  created: number;
+  modified: number;
+}
+
+// ---------------------------------------------------------------------------
+// Discussion database (threaded)
+// ---------------------------------------------------------------------------
+export interface DiscussionPost {
+  id: ID;
+  parentId: ID | null; // null => top-level topic
+  topicId: ID; // root post id, shared by every reply in a thread
+  subject: string;
+  author: Person;
+  body: string;
+  category: string;
+  date: number;
+}
+
+// ---------------------------------------------------------------------------
+// User profile / preferences
+// ---------------------------------------------------------------------------
+export interface UserProfile {
+  name: string;
+  email: string;
+  location: string;
+}

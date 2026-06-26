@@ -1,0 +1,87 @@
+/* ==========================================================================
+   To Do module
+   Builds on the shared layout (.app, .view, .nav-pane, .preview-pane …).
+   Only adds classes unique to the task list: completed strike-through, the
+   leading checkbox column, subtle group headers, and the detail form footer.
+   ========================================================================== */
+
+.todo-list .view-head .col,
+.todo-list .view-row .col {
+  border-right: none;
+}
+
+/* The checkbox sits flush and small to match the Win9x control scale. */
+.todo-row input[type="checkbox"] {
+  margin: 0;
+  cursor: default;
+}
+
+.todo-subject {
+  text-overflow: ellipsis;
+}
+
+/* Completed tasks: struck through and muted (still readable when selected). */
+.todo-row.todo-done .todo-subject {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}
+.todo-row.todo-done.selected .todo-subject {
+  color: #dfe9f6;
+}
+
+/* --- Group header rows (By Category / Status / Due Date) ----------------- */
+.todo-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 19px;
+  padding: 0 8px;
+  background: linear-gradient(180deg, #eeebe4, #ddd9d0);
+  border-bottom: 1px solid var(--shadow);
+  border-top: 1px solid var(--hl);
+  font-size: var(--fs-sm);
+  position: sticky;
+  top: 0;
+}
+.todo-group-label {
+  font-weight: bold;
+  color: var(--ink-soft);
+}
+.todo-group-count {
+  color: var(--ink-muted);
+  font-size: var(--fs-xs);
+}
+
+/* The "Quick Filters" sub-heading reuses the nav-title bevel but tightened. */
+.todo-nav-sub {
+  margin-top: 2px;
+  border-top: 1px solid var(--hl);
+}
+
+/* --- Detail / edit form ------------------------------------------------- */
+.todo-form {
+  overflow-y: auto;
+}
+.todo-completed-line {
+  margin-top: 3px;
+  font-size: var(--fs-sm);
+}
+.todo-fields {
+  padding: 8px 0 4px;
+}
+.todo-desc {
+  min-height: 120px;
+  resize: none;
+  font-family: var(--font-doc);
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--memo-yellow);
+}
+.todo-form-foot {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 14px;
+  margin-top: auto;
+  border-top: 1px solid var(--shadow);
+  background: var(--face-lighter);
+}

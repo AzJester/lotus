@@ -1,0 +1,197 @@
+/* ==========================================================================
+   Lotus Notes — design tokens & low-level utilities
+   The look is classic Windows 2000/XP-era beveled chrome with Notes accents:
+   gray button faces, hard 1px bevels, small Tahoma/MS-Sans type, the signature
+   Notes yellow memo, and the teal workspace.
+   ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --face: #d4d0c8; /* classic button/menu face */
+  --face-light: #e9e6df;
+  --face-lighter: #f3f1ec;
+  --window: #ece9d8; /* content background */
+  --white: #ffffff;
+  --paper: #ffffff;
+  --memo-yellow: #fbf8dd; /* the legal-pad memo body */
+
+  /* Bevel edges */
+  --hl: #ffffff; /* top/left highlight */
+  --hl-soft: #f4f2ed;
+  --shadow: #868682; /* bottom/right shadow */
+  --shadow-dark: #424242;
+
+  /* Brand / accents */
+  --notes-blue: #0a246a; /* active title bar */
+  --notes-blue-2: #3a6ea5;
+  --notes-blue-grad-a: #0a3d91;
+  --notes-blue-grad-b: #2a72d4;
+  --inactive-title: #7a96b8;
+  --teal: #1f7a7a; /* workspace felt */
+  --teal-dark: #145555;
+  --action-green: #d7e3c8; /* action bar gradient bottom */
+  --action-green-2: #eef3e6;
+
+  /* Selection */
+  --sel: #0a64c2;
+  --sel-soft: #cfe0f5;
+  --sel-text: #ffffff;
+
+  /* Text */
+  --ink: #000000;
+  --ink-soft: #303030;
+  --ink-muted: #5a5a5a;
+  --link: #0000c0;
+  --unread: #c01414; /* unread mail is red+bold in Notes */
+
+  /* Lines */
+  --grid: #c8c4bb;
+  --grid-soft: #dcd8cf;
+
+  /* Type */
+  --font-ui: Tahoma, "Segoe UI", "MS Sans Serif", Geneva, Verdana, sans-serif;
+  --font-doc: "Times New Roman", Georgia, serif;
+  --font-mono: "Lucida Console", "Courier New", monospace;
+  --fs: 12px;
+  --fs-sm: 11px;
+  --fs-xs: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--fs);
+  color: var(--ink);
+  background: #2b6b6b; /* the desk behind the Notes window */
+  -webkit-font-smoothing: none;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+/* --- Bevel utilities ----------------------------------------------------- */
+.bevel-out {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--face-lighter);
+}
+
+.bevel-in {
+  border-top: 1px solid var(--shadow-dark);
+  border-left: 1px solid var(--shadow-dark);
+  border-right: 1px solid var(--hl);
+  border-bottom: 1px solid var(--hl);
+  box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--face-lighter);
+}
+
+.bevel-field {
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  background: var(--white);
+}
+
+.bevel-thin {
+  border: 1px solid var(--shadow);
+  border-top-color: var(--hl);
+  border-left-color: var(--hl);
+}
+
+/* --- Scrollbars (retro chunky) ------------------------------------------ */
+*::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+*::-webkit-scrollbar-track {
+  background: #cfccc4;
+  box-shadow: inset 1px 1px 0 #b8b4ab;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+}
+*::-webkit-scrollbar-corner {
+  background: #cfccc4;
+}
+
+/* --- Generic button ----------------------------------------------------- */
+.btn {
+  font-family: var(--font-ui);
+  font-size: var(--fs);
+  background: var(--face);
+  color: var(--ink);
+  padding: 3px 12px;
+  min-height: 23px;
+  cursor: default;
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--face-lighter);
+}
+.btn:active {
+  border-top: 1px solid var(--shadow-dark);
+  border-left: 1px solid var(--shadow-dark);
+  border-right: 1px solid var(--hl);
+  border-bottom: 1px solid var(--hl);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+  padding: 4px 11px 2px 13px;
+}
+.btn:focus {
+  outline: 1px dotted #000;
+  outline-offset: -4px;
+}
+.btn[disabled] {
+  color: var(--shadow);
+  text-shadow: 1px 1px 0 var(--hl);
+}
+
+/* --- Text inputs -------------------------------------------------------- */
+input[type="text"],
+input[type="email"],
+input[type="search"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select,
+textarea {
+  font-family: var(--font-ui);
+  font-size: var(--fs);
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  padding: 2px 4px;
+  outline: none;
+}
+textarea {
+  resize: none;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
+::selection {
+  background: var(--sel);
+  color: var(--sel-text);
+}
