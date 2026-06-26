@@ -22,6 +22,8 @@ import Todo from "./apps/todo/Todo";
 import Notebook from "./apps/journal/Notebook";
 import Discussion from "./apps/discussion/Discussion";
 import SearchResults from "./apps/search/SearchResults";
+import Replicator from "./apps/replication/Replicator";
+import "./styles/replication.css";
 
 const VIEW_COMPONENTS: Record<ViewId, () => JSX.Element> = {
   welcome: Welcome,
@@ -115,6 +117,8 @@ export default function App() {
   const sendCmd = useUI((s) => s.sendCmd);
   const requestMemo = useUI((s) => s.requestMemo);
   const setStatus = useUI((s) => s.setStatus);
+  const openReplication = useUI((s) => s.openReplication);
+  const replicationOpen = useUI((s) => s.replicationOpen);
   const mail = useNotes((s) => s.mail);
   const user = useNotes((s) => s.user);
   const unread = unreadCount(mail);
@@ -206,6 +210,7 @@ export default function App() {
         <button className="tool-btn" title="Notebook" onClick={() => openView("journal")}>📓</button>
         <button className="tool-btn" title="Discussion" onClick={() => openView("discussion")}>💬</button>
         <div className="tool-sep" />
+        <button className="tool-btn" title="Replicate" onClick={openReplication}>🔄</button>
         <button className="tool-btn" title="Print (Ctrl+P)" onClick={() => window.print()}>🖨️</button>
         <div className="addr">
           <input
@@ -309,6 +314,15 @@ export default function App() {
           ✉️ {unread} unread
         </div>
         <div className="status-cell">{user.location}</div>
+        <div className="status-cell" style={{ padding: 0 }}>
+          <button
+            className="repl-status-btn"
+            title="Open the Replicator"
+            onClick={openReplication}
+          >
+            🔄 Replicate
+          </button>
+        </div>
         <div className="status-cell" style={{ width: 70, justifyContent: "center" }}>
           ▲ Online
         </div>
@@ -316,6 +330,9 @@ export default function App() {
 
       {/* Sametime chat windows overlay the whole desktop, bottom-right. */}
       <ChatDock />
+
+      {/* The Replicator modal, opened from the toolbar / status bar. */}
+      {replicationOpen && <Replicator />}
     </div>
   );
 }

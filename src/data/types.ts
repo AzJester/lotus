@@ -185,3 +185,18 @@ export interface UserProfile {
   email: string;
   location: string;
 }
+
+// ---------------------------------------------------------------------------
+// Replication
+// A serialized snapshot of the "server" replica's document databases. The
+// Replicator merges this against the local copy by document id. Only document
+// collections are mirrored (profile, custom folders and rules stay local).
+// ---------------------------------------------------------------------------
+export interface ReplicaSnapshot {
+  mail: MailMessage[];
+  calendar: CalendarEntry[];
+  contacts: Contact[];
+  todos: TodoTask[];
+  journal: JournalEntry[];
+  discussion: DiscussionPost[];
+}

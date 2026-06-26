@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Lotus Notes — Replicator dialog
+   Styled to match the classic Notes Replicator page: a server header bar, a
+   beveled list of databases with document counts and a sync-status column, and
+   a footer with the last-replicated time and the Replicate Now action.
+   ========================================================================== */
+
+.repl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs);
+}
+
+/* --- Server header ------------------------------------------------------- */
+.repl-server {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: linear-gradient(180deg, var(--face-lighter), var(--face));
+  border: 1px solid var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--hl);
+}
+.repl-server-ic {
+  font-size: 18px;
+  line-height: 1;
+}
+.repl-server-meta {
+  flex: 1;
+  min-width: 0;
+}
+.repl-server-name {
+  font-weight: bold;
+}
+.repl-server-state {
+  color: var(--shadow);
+  font-size: var(--fs-sm);
+}
+.repl-led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3a8a3a;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+.repl-led.busy {
+  background: #d8a514;
+  animation: repl-blink 0.6s steps(2, start) infinite;
+}
+@keyframes repl-blink {
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* --- Database list ------------------------------------------------------- */
+.repl-list {
+  border: 1px solid var(--shadow);
+  border-top: 1px solid var(--shadow-dark);
+  background: var(--white);
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.12);
+}
+.repl-head,
+.repl-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 90px;
+  align-items: center;
+  padding: 3px 8px;
+}
+.repl-head {
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow);
+  font-weight: bold;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+}
+.repl-row {
+  border-bottom: 1px solid #e6e4dd;
+}
+.repl-row:last-child {
+  border-bottom: none;
+}
+.repl-row:nth-child(even) {
+  background: #f6f5ef;
+}
+.repl-c-db {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.repl-row-ic {
+  font-size: 13px;
+}
+.repl-c-count {
+  text-align: right;
+  padding-right: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.repl-c-status {
+  text-align: right;
+}
+.repl-c-status.synced {
+  color: #2e6b2e;
+}
+.repl-c-status.pending {
+  color: #9a5a00;
+  font-weight: bold;
+}
+
+/* --- Footer -------------------------------------------------------------- */
+.repl-foot-info {
+  color: var(--shadow);
+  font-size: var(--fs-sm);
+}
+.repl-foot-spacer {
+  flex: 1;
+}
+
+/* The Replicator can open before any view-scoped CSS loads, so define the
+   primary button accent here rather than rely on mail/contacts stylesheets. */
+.modal-foot .btn.primary {
+  font-weight: bold;
+  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+}
+
+/* --- Status-bar Replicate control --------------------------------------- */
+.repl-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  cursor: default;
+}
+.repl-status-btn:hover {
+  background: var(--sel-soft);
+}
