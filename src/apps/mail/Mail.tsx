@@ -272,8 +272,10 @@ export default function Mail() {
                   }}
                 >
                   <span className="nav-ic">{f.icon}</span>
-                  <span className="nav-label">{f.label}</span>
-                  {count > 0 && <span className="nav-count">{count}</span>}
+                  <span className={"nav-label" + (count > 0 ? " has-count" : "")}>
+                    {f.label}
+                    {count > 0 ? ` (${count})` : ""}
+                  </span>
                 </div>
               );
             })}
@@ -318,7 +320,9 @@ export default function Mail() {
                         className={
                           "view-row" +
                           (m.id === selectedId ? " selected" : "") +
-                          (!m.read && m.folder === "inbox" ? " unread" : "")
+                          (!m.read && m.folder === "inbox" ? " unread" : "") +
+                          (m.flagged ? " flagged" : "") +
+                          (m.priority === "high" ? " hot" : "")
                         }
                         onClick={() => selectMessage(m)}
                         onDoubleClick={() => (m.folder === "drafts" ? editDraft(m) : selectMessage(m))}

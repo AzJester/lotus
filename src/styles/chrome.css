@@ -269,6 +269,88 @@
   background: var(--window);
 }
 
+/* --- Tab row: the Open launcher + the window tabs ----------------------- */
+.tabs-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow-dark);
+  /* visible overflow so the Open dropdown is not clipped */
+}
+.tabs-row .window-tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+/* --- The green "Open" launcher (Notes 8) -------------------------------- */
+.open-launcher {
+  position: relative;
+  align-self: center;
+  margin: 0 6px 0 4px;
+  flex: 0 0 auto;
+}
+.open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 19px;
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(180deg, #7fc24a 0%, #4e9a2a 55%, #3c8420 100%);
+  border-top: 1px solid #aee089;
+  border-left: 1px solid #aee089;
+  border-right: 1px solid #2c5e16;
+  border-bottom: 1px solid #2c5e16;
+  border-radius: 3px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+.open-btn:hover {
+  background: linear-gradient(180deg, #8fd05a 0%, #59a832 55%, #46901f 100%);
+}
+.open-btn.active,
+.open-btn:active {
+  background: linear-gradient(180deg, #3c8420, #4e9a2a);
+}
+.open-ic {
+  font-size: 11px;
+}
+.open-caret {
+  font-size: 8px;
+}
+.open-menu {
+  position: absolute;
+  top: 21px;
+  left: 0;
+  min-width: 172px;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+  padding: 2px;
+  z-index: 200;
+}
+.open-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: var(--fs);
+  font-weight: normal;
+}
+.open-row:hover {
+  background: var(--sel);
+  color: #fff;
+}
+.open-row-ic {
+  width: 16px;
+  text-align: center;
+}
+
 /* --- Window tabs -------------------------------------------------------- */
 .window-tabs {
   display: flex;

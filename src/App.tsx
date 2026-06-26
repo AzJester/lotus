@@ -5,11 +5,12 @@
 // bar. Modules are selected by the active window tab.
 // ============================================================================
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUI, VIEWS } from "./data/ui";
 import type { ViewId } from "./data/ui";
 import { unreadCount, useNotes } from "./data/store";
 import MenuBar from "./components/MenuBar";
+import Sidebar from "./components/Sidebar";
 
 import Welcome from "./shell/Welcome";
 import Workspace from "./shell/Workspace";
@@ -52,6 +53,56 @@ function NotesLogo() {
         <i key={c} style={{ background: c }} />
       ))}
     </span>
+  );
+}
+
+// The green "Open" launcher from Notes 8 — a dropdown of every application.
+function OpenLauncher({ onOpen }: { onOpen: (v: ViewId) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+  const items: ViewId[] = [
+    "welcome", "workspace", "mail", "calendar", "contacts", "todo", "journal", "discussion",
+  ];
+  return (
+    <div className="open-launcher" ref={ref}>
+      <button
+        className={"open-btn" + (open ? " active" : "")}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setOpen((o) => !o);
+        }}
+      >
+        <span className="open-ic">⊞</span> Open <span className="open-caret">▾</span>
+      </button>
+      {open && (
+        <div className="open-menu" onMouseDown={(e) => e.stopPropagation()}>
+          {items.map((v) => (
+            <div
+              key={v}
+              className="open-row"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onOpen(v);
+                setOpen(false);
+              }}
+            >
+              <span className="open-row-ic" style={{ color: VIEWS[v].color }}>
+                {VIEWS[v].icon}
+              </span>
+              {VIEWS[v].title}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -127,8 +178,10 @@ export default function App() {
         </div>
 
         <div className="workpane">
-          <div className="window-tabs">
-            {tabs.map((t) => {
+          <div className="tabs-row">
+            <OpenLauncher onOpen={openView} />
+            <div className="window-tabs">
+              {tabs.map((t) => {
               const meta = VIEWS[t.view];
               const isActive = t.view === active;
               return (
@@ -153,13 +206,16 @@ export default function App() {
                   )}
                 </div>
               );
-            })}
+              })}
+            </div>
           </div>
 
           <div className="workview">
             <ActiveView />
           </div>
         </div>
+
+        <Sidebar />
       </div>
 
       {/* Status bar */}

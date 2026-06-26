@@ -7,6 +7,27 @@
   border-right: none;
 }
 
+/* Folder counts shown inline as "Inbox (19)" with a bold folder name */
+.mail-app .nav-label.has-count {
+  font-weight: bold;
+}
+
+/* Colored message rows (Notes-style): follow-up flagged = yellow, high
+   importance = red tint. Hover and selection still take precedence. */
+.mail-list .view-row.hot {
+  background: #fde6e1;
+}
+.mail-list .view-row.flagged {
+  background: #fbf3c4;
+}
+.mail-list .view-row:hover {
+  background: #e8f0fb;
+}
+.mail-list .view-row.selected {
+  background: var(--sel);
+  color: #fff;
+}
+
 /* Reading pane */
 .memo-reader {
   overflow-y: auto;
