@@ -45,13 +45,11 @@ const BOOKMARKS: ViewId[] = [
 ];
 
 function NotesLogo() {
-  // The little skewed colored bars from the old Notes logo.
-  const colors = ["#e7b416", "#d33f3f", "#3f9d3f", "#2f6fd0"];
+  // The amber Notes 8 application icon (a glossy gold rounded square with the
+  // stylized white Notes mark), as shown in the OS title bar.
   return (
-    <span className="titlebar-logo" aria-hidden>
-      {colors.map((c) => (
-        <i key={c} style={{ background: c }} />
-      ))}
+    <span className="tb-appicon" aria-hidden>
+      <span className="tb-appicon-mark">❋</span>
     </span>
   );
 }
@@ -120,15 +118,24 @@ export default function App() {
 
   return (
     <div className="notes-window">
-      {/* Title bar */}
+      {/* Title bar — Windows XP "Luna" chrome with the IBM Lotus Notes 8 icon */}
       <div className="titlebar">
         <NotesLogo />
-        <span className="titlebar-title">{VIEWS[active].title} - IBM Lotus Notes</span>
+        <span className="titlebar-title">
+          {VIEWS[active].title}
+          {active === "mail" ? " - Inbox" : ""} - IBM Lotus Notes
+        </span>
         <span className="titlebar-spacer" />
         <div className="titlebar-btns">
-          <span className="titlebar-btn">_</span>
-          <span className="titlebar-btn">▢</span>
-          <span className="titlebar-btn close">✕</span>
+          <span className="titlebar-btn min" title="Minimize">
+            <i className="xp-min" />
+          </span>
+          <span className="titlebar-btn max" title="Maximize">
+            <i className="xp-max" />
+          </span>
+          <span className="titlebar-btn close" title="Close">
+            ✕
+          </span>
         </div>
       </div>
 

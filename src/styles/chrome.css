@@ -14,66 +14,109 @@
   overflow: hidden;
 }
 
-/* --- Title bar ---------------------------------------------------------- */
+/* --- Title bar (Windows XP "Luna" blue + IBM Lotus Notes 8 icon) -------- */
 .titlebar {
   display: flex;
   align-items: center;
-  height: 26px;
-  padding: 0 2px 0 5px;
+  height: 28px;
+  padding: 0 4px 2px 5px;
   color: #fff;
   background: linear-gradient(
     180deg,
-    var(--notes-blue-grad-a) 0%,
-    var(--notes-blue) 8%,
-    var(--notes-blue-grad-b) 92%,
-    #1a52a8 100%
+    #0a4bd1 0%,
+    #3a7ff0 8%,
+    #1c64e0 38%,
+    #0b50cf 52%,
+    #0a47bd 90%,
+    #2a6fe0 100%
   );
+  border-bottom: 1px solid #07307e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
   flex: 0 0 auto;
   user-select: none;
 }
-.titlebar-logo {
-  display: inline-flex;
-  gap: 1px;
+
+/* The amber Notes 8 app icon */
+.tb-appicon {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
   margin-right: 6px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 32% 24%, #ffe680 0%, #ffc02e 42%, #f59405 78%, #d97604 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(140, 70, 0, 0.5),
+    0 1px 1px rgba(0, 0, 0, 0.35);
 }
-.titlebar-logo i {
-  width: 5px;
-  height: 12px;
-  display: inline-block;
-  transform: skewX(-12deg);
+.tb-appicon-mark {
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(150, 80, 0, 0.6);
 }
+
 .titlebar-title {
   font-weight: bold;
   font-size: var(--fs);
   letter-spacing: 0.2px;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
 }
 .titlebar-spacer {
   flex: 1;
 }
 .titlebar-btns {
   display: flex;
-  gap: 2px;
+  gap: 3px;
+  align-items: center;
 }
+
+/* XP-style window buttons: glossy rounded squares, red close */
 .titlebar-btn {
-  width: 21px;
-  height: 19px;
+  width: 22px;
+  height: 21px;
   display: grid;
   place-items: center;
   font-size: 11px;
   font-weight: bold;
-  color: #000;
-  background: var(--face);
-  border-top: 1px solid var(--hl);
-  border-left: 1px solid var(--hl);
-  border-right: 1px solid var(--shadow-dark);
-  border-bottom: 1px solid var(--shadow-dark);
+  color: #fff;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, #5fa0f0 0%, #3f86ec 40%, #1f63d6 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 3px rgba(0, 0, 0, 0.25);
+}
+.titlebar-btn:hover {
+  filter: brightness(1.12);
 }
 .titlebar-btn:active {
-  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+  background: linear-gradient(180deg, #1f63d6, #3f86ec);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.4);
 }
 .titlebar-btn.close {
+  width: 44px;
   font-family: var(--font-ui);
+  font-size: 12px;
+  background: linear-gradient(180deg, #f6a877 0%, #e8643a 38%, #cf3417 100%);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.titlebar-btn.close:active {
+  background: linear-gradient(180deg, #cf3417, #e8643a);
+}
+
+/* Crisp glyphs drawn with CSS so they match the XP look */
+.xp-min {
+  width: 8px;
+  height: 3px;
+  background: #fff;
+  margin-top: 6px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+.xp-max {
+  width: 10px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top-width: 3px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 /* --- Menu bar ----------------------------------------------------------- */
