@@ -135,7 +135,10 @@ export default function Todo() {
   // The detail editor mirrors the selected task; null until a row is chosen.
   const [edit, setEdit] = useState<Draft | null>(null);
 
-  const now = Date.now();
+  // Capture "now" once per mount so the memoized views are stable and the
+  // overdue boundary doesn't drift mid-render.
+  const [now] = useState(() => Date.now());
+  const todayStart = startOfDay(now);
   const selected = todos.find((t) => t.id === selectedId) ?? null;
 
   // --- filtered + sorted list for the current view ------------------------
@@ -143,7 +146,7 @@ export default function Todo() {
     let list = todos;
     if (nav === "completed") list = list.filter((t) => t.status === "complete");
     else if (nav === "overdue")
-      list = list.filter((t) => t.due != null && t.due < now && t.status !== "complete");
+      list = list.filter((t) => t.due != null && t.due < todayStart && t.status !== "complete");
     else if (nav === "high") list = list.filter((t) => t.priority === "high");
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -442,11 +445,13 @@ export default function Todo() {
 function navCount(todos: TodoTask[], key: NavKey, now: number): number {
   switch (key) {
     case "all":
-      return todos.filter((t) => t.status !== "complete").length;
+      return todos.length;
     case "completed":
       return todos.filter((t) => t.status === "complete").length;
     case "overdue":
-      return todos.filter((t) => t.due != null && t.due < now && t.status !== "complete").length;
+      return todos.filter(
+        (t) => t.due != null && t.due < startOfDay(now) && t.status !== "complete",
+      ).length;
     case "high":
       return todos.filter((t) => t.priority === "high" && t.status !== "complete").length;
     default:

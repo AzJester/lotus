@@ -49,7 +49,7 @@ export default function Notebook() {
   const entries = useMemo(() => {
     let list = journal;
     if (typeof nav !== "string") {
-      list = list.filter((j) => j.category === nav.cat);
+      list = list.filter((j) => j.category.trim() === nav.cat);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -147,7 +147,7 @@ export default function Notebook() {
           {categories.length > 0 && (
             <div className="nav-group nav-sub">
               {categories.map((c) => {
-                const count = journal.filter((j) => j.category === c).length;
+                const count = journal.filter((j) => j.category.trim() === c).length;
                 return (
                   <div
                     key={c}

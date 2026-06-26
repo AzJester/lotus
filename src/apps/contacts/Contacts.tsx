@@ -65,7 +65,7 @@ function byLastName(a: Contact, b: Contact): number {
 export default function Contacts() {
   const { contacts, addContact, updateContact, deleteContact } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
-  const openView = useUI((s) => s.openView);
+  const requestMemo = useUI((s) => s.requestMemo);
 
   const [nav, setNav] = useState<NavKey>({ kind: "name" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -146,8 +146,7 @@ export default function Contacts() {
   }
   function writeMemo() {
     if (!selected) return;
-    openView("mail");
-    setStatus(`New memo to ${selected.email || fullName(selected)}.`);
+    requestMemo(selected.email || fullName(selected));
   }
 
   // --- render -------------------------------------------------------------

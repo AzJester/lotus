@@ -6,7 +6,7 @@
 // classes (.app, .action-bar, .app-cols, .nav-pane, .list-pane, .preview-pane).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
 import type { MailFolder, MailMessage, Person, Priority } from "../../data/types";
@@ -68,11 +68,28 @@ export default function Mail() {
     emptyTrash,
   } = useNotes();
   const setStatus = useUI((s) => s.setStatus);
+  const pendingMemo = useUI((s) => s.pendingMemo);
+  const clearMemo = useUI((s) => s.clearMemo);
 
   const [nav, setNav] = useState<NavKey>("inbox");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [compose, setCompose] = useState<Compose | null>(null);
+
+  // Honour a "Write Memo" request handed over from another module (e.g. Contacts).
+  useEffect(() => {
+    if (pendingMemo) {
+      setCompose({
+        draftId: null,
+        to: pendingMemo.to,
+        cc: "",
+        subject: pendingMemo.subject,
+        body: "",
+        priority: "normal",
+      });
+      clearMemo();
+    }
+  }, [pendingMemo, clearMemo]);
 
   const messages = useMemo(() => {
     let list = mail;
@@ -118,12 +135,19 @@ export default function Mail() {
   }
   function reply(all: boolean) {
     if (!selected) return;
-    const cc = all ? peopleStr(selected.cc.filter((p) => p.email !== user.email)) : "";
+    // Reply All carries every other primary + cc recipient (minus me and the sender).
+    const cc = all
+      ? peopleStr(
+          [...selected.to, ...selected.cc].filter(
+            (p) => p.email !== user.email && p.email !== selected.from.email,
+          ),
+        )
+      : "";
     setCompose({
       draftId: null,
       to: peopleStr([selected.from]),
       cc,
-      subject: selected.subject.startsWith("RE:") ? selected.subject : `RE: ${selected.subject}`,
+      subject: /^re:/i.test(selected.subject) ? selected.subject : `RE: ${selected.subject}`,
       body: `\n\n----- Original Message -----\nFrom: ${selected.from.name}\nDate: ${fmtDateTime(selected.date)}\nSubject: ${selected.subject}\n\n${selected.body}`,
       priority: "normal",
     });
@@ -134,7 +158,7 @@ export default function Mail() {
       draftId: null,
       to: "",
       cc: "",
-      subject: selected.subject.startsWith("Fw:") ? selected.subject : `Fw: ${selected.subject}`,
+      subject: /^fw:/i.test(selected.subject) ? selected.subject : `Fw: ${selected.subject}`,
       body: `\n\n----- Forwarded Message -----\nFrom: ${selected.from.name}\nDate: ${fmtDateTime(selected.date)}\nSubject: ${selected.subject}\n\n${selected.body}`,
       priority: "normal",
     });
@@ -162,8 +186,14 @@ export default function Mail() {
       setStatus("Please specify at least one recipient.");
       return;
     }
-    if (compose.draftId) deleteMail(compose.draftId); // remove the draft copy
-    sendMail(buildMessage({ ...compose, draftId: null }, "sent"));
+    if (compose.draftId) {
+      // Promote the existing draft document into a Sent memo in place, so it
+      // never lingers in Drafts or transits through Trash.
+      const msg = buildMessage(compose, "sent");
+      updateMail(compose.draftId, { ...msg, id: compose.draftId });
+    } else {
+      sendMail(buildMessage({ ...compose, draftId: null }, "sent"));
+    }
     setStatus(`Memo sent to ${parsePeople(compose.to).length} recipient(s).`);
     setCompose(null);
   }

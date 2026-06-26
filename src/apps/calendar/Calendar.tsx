@@ -25,7 +25,6 @@ import {
   toLocalInput,
   fromLocalInput,
   startOfDay,
-  sameDay,
   MONTHS,
   DAYS_ABBR,
 } from "../../lib/format";
@@ -174,8 +173,16 @@ export default function Calendar() {
   }, [calendar, search]);
 
   function entriesOn(dayMs: number): CalendarEntry[] {
+    const dayStart = startOfDay(dayMs);
+    const dayEnd = dayStart + 86400000;
     return visible
-      .filter((e) => sameDay(e.start, dayMs))
+      .filter((e) => {
+        // An entry shows on any day its [start, end] span overlaps (covers
+        // multi-day events as well as single-day ones).
+        const s = Math.min(e.start, e.end);
+        const en = Math.max(e.start, e.end);
+        return s < dayEnd && en >= dayStart;
+      })
       .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.start - b.start);
   }
 
@@ -231,6 +238,10 @@ export default function Calendar() {
 
   function saveDraft() {
     if (!draft) return;
+    if (Number.isNaN(draft.start) || Number.isNaN(draft.end)) {
+      setStatus("Please provide a valid start and end date/time.");
+      return;
+    }
     if (draft.end < draft.start) {
       setStatus("End time must be on or after the start time.");
       return;
@@ -509,9 +520,12 @@ function TimeGrid({
                   key={entry.id}
                   className={"cal-chip" + (entry.id === selectedId ? " selected" : "")}
                   style={{ background: typeColor(entry.type) }}
-                  title={entry.subject}
+                  title={
+                    entry.allDay ? entry.subject : `${fmtTime(entry.start)} ${entry.subject}`
+                  }
                   onClick={() => onOpen(entry)}
                 >
+                  {!entry.allDay && <span className="cal-chip-time">{fmtTime(entry.start)}</span>}
                   <span className="cal-chip-sub">{entry.subject}</span>
                 </div>
               ))}
@@ -546,9 +560,14 @@ function TimeGrid({
                 ))}
                 {timed.map((entry) => {
                   const dayTop = atHour(dayMs, DAY_START_HOUR);
+                  const dayBottom = atHour(dayMs, DAY_END_HOUR + 1); // 8:00 PM
                   const minPerPx = 60 / SLOT_PX;
-                  const top = Math.max(0, (entry.start - dayTop) / 60000 / minPerPx);
-                  const rawH = (entry.end - entry.start) / 60000 / minPerPx;
+                  // Clamp the entry's span into the visible window so entries that
+                  // start before 7 AM or end after 7 PM never overflow the column.
+                  const vs = Math.min(Math.max(entry.start, dayTop), dayBottom);
+                  const ve = Math.min(Math.max(entry.end, vs), dayBottom);
+                  const top = (vs - dayTop) / 60000 / minPerPx;
+                  const rawH = (ve - vs) / 60000 / minPerPx;
                   const height = Math.max(16, rawH || 16);
                   return (
                     <div
@@ -724,7 +743,10 @@ function EntryForm({
           <input
             type="datetime-local"
             value={toLocalInput(draft.start)}
-            onChange={(e) => set({ start: fromLocalInput(e.target.value) })}
+            onChange={(e) => {
+              const v = fromLocalInput(e.target.value);
+              if (!Number.isNaN(v)) set({ start: v });
+            }}
           />
         </FieldRow>
         <FieldRow label="Ends">
@@ -732,7 +754,10 @@ function EntryForm({
             type="datetime-local"
             className={badRange ? "cal-bad" : undefined}
             value={toLocalInput(draft.end)}
-            onChange={(e) => set({ end: fromLocalInput(e.target.value) })}
+            onChange={(e) => {
+              const v = fromLocalInput(e.target.value);
+              if (!Number.isNaN(v)) set({ end: v });
+            }}
           />
         </FieldRow>
         {badRange && (

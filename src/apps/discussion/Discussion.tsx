@@ -119,7 +119,9 @@ export default function Discussion() {
     };
 
     const roots = visible
-      .filter((p) => p.parentId === null)
+      // Top-level topics, plus any reply orphaned by a missing parent, so no
+      // post ever vanishes from the tree.
+      .filter((p) => p.parentId === null || !byId.has(p.parentId))
       .map((p) => build(p, 0));
 
     // Most-recent-activity per thread, descending.
