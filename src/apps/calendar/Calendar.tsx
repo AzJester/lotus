@@ -6,10 +6,16 @@
 // and layout classes. All date math is local (format.ts helpers + Date).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
-import type { CalEntryType, CalendarEntry, Person } from "../../data/types";
+import type {
+  CalEntryType,
+  CalendarEntry,
+  Person,
+  RecurFreq,
+  Recurrence,
+} from "../../data/types";
 import {
   ActionBar,
   ActionButton,
@@ -24,6 +30,7 @@ import {
   fmtDateLong,
   toLocalInput,
   fromLocalInput,
+  toDateInput,
   startOfDay,
   MONTHS,
   DAYS_ABBR,
@@ -97,6 +104,68 @@ function atHour(dayMs: number, hour: number): number {
   return d.getTime();
 }
 
+// --- recurrence expansion --------------------------------------------------
+const SNAP_MIN = 15;
+const SNAP_MS = SNAP_MIN * 60000;
+const MIN_DURATION_MS = SNAP_MS;
+const MAX_OCCURRENCES = 366;
+
+/** Advance an epoch ms by one step of the given frequency (calendar-aware). */
+function advance(ms: number, freq: RecurFreq, n: number): number {
+  const d = new Date(ms);
+  if (freq === "daily") d.setDate(d.getDate() + n);
+  else if (freq === "weekly") d.setDate(d.getDate() + n * 7);
+  else d.setMonth(d.getMonth() + n); // monthly
+  return d.getTime();
+}
+
+/** Synthetic occurrence id: `${masterId}__${occStartMs}`. */
+function occurrenceId(masterId: string, occStart: number): string {
+  return `${masterId}__${occStart}`;
+}
+/** Resolve a (possibly synthetic) id back to the master entry id. */
+function masterIdOf(id: string): string {
+  const i = id.indexOf("__");
+  return i === -1 ? id : id.slice(0, i);
+}
+/** An occurrence is "selected" when its master matches the selected id. */
+function isSelected(entryId: string, selectedId: string | null): boolean {
+  return selectedId != null && masterIdOf(entryId) === masterIdOf(selectedId);
+}
+
+/**
+ * Expand a master entry into its concrete occurrences (the master itself plus
+ * any recurring repeats up to `until`). Non-recurring entries return just
+ * themselves. Each occurrence carries the master's fields with shifted
+ * start/end and a synthetic id so the original master is still reachable.
+ */
+function expandEntry(master: CalendarEntry): CalendarEntry[] {
+  const rec = master.recurrence;
+  if (!rec) return [master];
+  const out: CalendarEntry[] = [];
+  const duration = master.end - master.start;
+  for (let i = 0; i < MAX_OCCURRENCES; i++) {
+    const occStart = i === 0 ? master.start : advance(master.start, rec.freq, i);
+    if (occStart > rec.until) break;
+    out.push(
+      i === 0
+        ? master
+        : {
+            ...master,
+            id: occurrenceId(master.id, occStart),
+            start: occStart,
+            end: occStart + duration,
+          },
+    );
+  }
+  return out;
+}
+
+/** Snap an epoch ms timestamp to the nearest SNAP_MIN boundary. */
+function snap(ms: number): number {
+  return Math.round(ms / SNAP_MS) * SNAP_MS;
+}
+
 // --- invitee parsing (Person[]) --------------------------------------------
 function parsePeople(raw: string): Person[] {
   return raw
@@ -118,8 +187,10 @@ function parsePeople(raw: string): Person[] {
 const peopleStr = (ppl: Person[]) => ppl.map((p) => p.name || p.email).join(", ");
 
 // --- editable form draft ----------------------------------------------------
+type RepeatChoice = "none" | RecurFreq;
+
 interface Draft {
-  id: string | null; // existing entry being edited, else null
+  id: string | null; // existing MASTER entry being edited, else null
   type: CalEntryType;
   subject: string;
   location: string;
@@ -130,6 +201,9 @@ interface Draft {
   invitees: string;
   category: string;
   alarm: boolean;
+  alarmMinutes: number;
+  repeat: RepeatChoice;
+  until: number; // series end (used when repeat !== "none")
 }
 
 function blankDraft(start: number): Draft {
@@ -145,6 +219,9 @@ function blankDraft(start: number): Draft {
     invitees: "",
     category: "",
     alarm: false,
+    alarmMinutes: 15,
+    repeat: "none",
+    until: addDays(start, 30),
   };
 }
 
@@ -158,10 +235,13 @@ export default function Calendar() {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
 
-  const selected = calendar.find((e) => e.id === selectedId) ?? null;
+  // The selection tracks a MASTER id; an occurrence resolves back to its master.
+  const selected =
+    calendar.find((e) => e.id === (selectedId ? masterIdOf(selectedId) : null)) ?? null;
 
-  // Entries matching the search box (applied everywhere).
-  const visible = useMemo(() => {
+  // Masters matching the search box (applied everywhere). Filtering on the
+  // master is enough: occurrences inherit the master's searchable fields.
+  const masters = useMemo(() => {
     if (!search.trim()) return calendar;
     const q = search.toLowerCase();
     return calendar.filter(
@@ -171,6 +251,10 @@ export default function Calendar() {
         e.description.toLowerCase().includes(q),
     );
   }, [calendar, search]);
+
+  // Every concrete occurrence (recurring masters expanded), used by the grid /
+  // month / all-entries views.
+  const visible = useMemo(() => masters.flatMap(expandEntry), [masters]);
 
   function entriesOn(dayMs: number): CalendarEntry[] {
     const dayStart = startOfDay(dayMs);
@@ -212,20 +296,26 @@ export default function Calendar() {
   }, [mode, anchor]);
 
   // --- open / create / edit ----------------------------------------------
-  function openEntry(e: CalendarEntry) {
-    setSelectedId(e.id);
+  // Opening any occurrence opens the MASTER entry for editing.
+  function openEntry(occurrence: CalendarEntry) {
+    const master =
+      calendar.find((e) => e.id === masterIdOf(occurrence.id)) ?? occurrence;
+    setSelectedId(master.id);
     setDraft({
-      id: e.id,
-      type: e.type,
-      subject: e.subject,
-      location: e.location,
-      start: e.start,
-      end: e.end,
-      allDay: e.allDay,
-      description: e.description,
-      invitees: peopleStr(e.invitees),
-      category: e.category,
-      alarm: e.alarm,
+      id: master.id,
+      type: master.type,
+      subject: master.subject,
+      location: master.location,
+      start: master.start,
+      end: master.end,
+      allDay: master.allDay,
+      description: master.description,
+      invitees: peopleStr(master.invitees),
+      category: master.category,
+      alarm: master.alarm,
+      alarmMinutes: master.alarmMinutes ?? 15,
+      repeat: master.recurrence?.freq ?? "none",
+      until: master.recurrence?.until ?? addDays(master.start, 30),
     });
   }
   function newEntry(start?: number) {
@@ -246,6 +336,10 @@ export default function Calendar() {
       setStatus("End time must be on or after the start time.");
       return;
     }
+    const recurrence: Recurrence | undefined =
+      draft.repeat === "none"
+        ? undefined
+        : { freq: draft.repeat, until: Math.max(draft.until, draft.start) };
     const entry: CalendarEntry = {
       id: draft.id ?? uid(),
       type: draft.type,
@@ -258,8 +352,12 @@ export default function Calendar() {
       invitees: parsePeople(draft.invitees),
       category: draft.category.trim(),
       alarm: draft.alarm,
+      alarmMinutes: draft.alarm ? draft.alarmMinutes : undefined,
+      recurrence,
     };
     if (draft.id) {
+      // Editing the master updates the whole series. Replace wholesale so a
+      // removed recurrence/alarm is actually cleared.
       updateCalendarEntry(draft.id, entry);
       setStatus(`Updated "${entry.subject}".`);
     } else {
@@ -270,15 +368,102 @@ export default function Calendar() {
     setDraft(null);
   }
 
+  // Deleting any occurrence deletes the whole series (the master).
   function delEntry(id?: string) {
-    const target = id ?? selectedId;
-    if (!target) return;
+    const raw = id ?? selectedId;
+    if (!raw) return;
+    const target = masterIdOf(raw);
     const e = calendar.find((x) => x.id === target);
     deleteCalendarEntry(target);
     setStatus(e ? `Deleted "${e.subject}".` : "Entry deleted.");
-    if (selectedId === target) setSelectedId(null);
+    if (selectedId && masterIdOf(selectedId) === target) setSelectedId(null);
     if (draft && draft.id === target) setDraft(null);
   }
+
+  // --- drag to move / resize (occurrence-aware) ---------------------------
+  // Moving an occurrence shifts the MASTER by the same delta (the whole series
+  // moves), keeping behaviour simple and predictable.
+  function moveEntry(occurrence: CalendarEntry, newStart: number) {
+    const masterId = masterIdOf(occurrence.id);
+    const master = calendar.find((e) => e.id === masterId);
+    if (!master) return;
+    const delta = snap(newStart) - occurrence.start;
+    if (delta === 0) return;
+    updateCalendarEntry(masterId, {
+      start: master.start + delta,
+      end: master.end + delta,
+    });
+    if (master.recurrence) setStatus(`Moved the whole "${master.subject}" series.`);
+    else setStatus(`Moved "${master.subject}".`);
+  }
+
+  // Resizing an occurrence changes only the end time of the MASTER (preserving
+  // the series cadence). Enforces a 15-minute minimum duration.
+  function resizeEntry(occurrence: CalendarEntry, newEnd: number) {
+    const masterId = masterIdOf(occurrence.id);
+    const master = calendar.find((e) => e.id === masterId);
+    if (!master) return;
+    const occEnd = Math.max(snap(newEnd), occurrence.start + MIN_DURATION_MS);
+    const delta = occEnd - occurrence.end;
+    if (delta === 0) return;
+    updateCalendarEntry(masterId, { end: master.end + delta });
+    setStatus(`Resized "${master.subject}".`);
+  }
+
+  // --- alarms + browser notifications -------------------------------------
+  // Track which occurrence alarms have already been scheduled so changes to the
+  // calendar never schedule the same alert twice.
+  const scheduledAlarms = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const hasNotif = typeof Notification !== "undefined";
+    if (hasNotif && Notification.permission === "default") {
+      // Request permission once, the first time we have something to schedule.
+      const anyAlarmed = calendar.some((e) => e.alarm);
+      if (anyAlarmed) void Notification.requestPermission();
+    }
+
+    const now = Date.now();
+    const horizon = now + 24 * 3600000; // next 24 hours
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const seen = scheduledAlarms.current;
+
+    // Expand every alarmed master into occurrences and schedule those whose
+    // alarm time falls in the future but within the next 24 hours.
+    for (const master of calendar) {
+      if (!master.alarm) continue;
+      const minutes = master.alarmMinutes ?? 15;
+      for (const occ of expandEntry(master)) {
+        const fireAt = occ.start - minutes * 60000;
+        if (fireAt <= now || fireAt > horizon) continue;
+        const key = `${occ.id}@${fireAt}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const subject = occ.subject;
+        const body = `${occ.allDay ? "All day" : fmtTime(occ.start)}${
+          occ.location ? " — " + occ.location : ""
+        }`;
+        const timer = setTimeout(() => {
+          if (hasNotif && Notification.permission === "granted") {
+            try {
+              new Notification(subject, { body });
+            } catch {
+              /* some environments block construction; fall through to status */
+            }
+          }
+          setStatus(`⏰ ${subject} — ${body}`);
+        }, fireAt - now);
+        timers.push(timer);
+      }
+    }
+
+    return () => {
+      for (const t of timers) clearTimeout(t);
+      // Allow these occurrences to be rescheduled after cleanup (e.g. on the
+      // next calendar change) without double-firing within a single schedule.
+      scheduledAlarms.current = new Set();
+    };
+  }, [calendar, setStatus]);
 
   // --- render -------------------------------------------------------------
   return (
@@ -357,6 +542,8 @@ export default function Calendar() {
               entriesOn={entriesOn}
               onOpen={openEntry}
               onNewAt={(dayMs, hour) => newEntry(atHour(dayMs, hour))}
+              onMove={moveEntry}
+              onResize={resizeEntry}
             />
           )}
           {mode === "day" && (
@@ -367,13 +554,15 @@ export default function Calendar() {
               entriesOn={entriesOn}
               onOpen={openEntry}
               onNewAt={(dayMs, hour) => newEntry(atHour(dayMs, hour))}
+              onMove={moveEntry}
+              onResize={resizeEntry}
             />
           )}
           {mode === "all" && (
             <AllEntriesView
               entries={visible}
               selectedId={selectedId}
-              onSelect={setSelectedId}
+              onSelect={(occ) => setSelectedId(masterIdOf(occ))}
               onOpen={openEntry}
             />
           )}
@@ -443,7 +632,9 @@ function MonthView({
                 {list.map((entry) => (
                   <div
                     key={entry.id}
-                    className={"cal-chip" + (entry.id === selectedId ? " selected" : "")}
+                    className={
+                      "cal-chip" + (isSelected(entry.id, selectedId) ? " selected" : "")
+                    }
                     style={{ background: typeColor(entry.type) }}
                     title={`${entry.allDay ? "All day" : fmtTime(entry.start)} — ${entry.subject}`}
                     onClick={(ev) => {
@@ -452,6 +643,7 @@ function MonthView({
                     }}
                   >
                     {!entry.allDay && <span className="cal-chip-time">{fmtTime(entry.start)}</span>}
+                    {entry.recurrence && <span className="cal-recur">↻</span>}
                     <span className="cal-chip-sub">{entry.subject}</span>
                   </div>
                 ))}
@@ -467,6 +659,18 @@ function MonthView({
 // ===========================================================================
 // Day / Week / Work Week time grid
 // ===========================================================================
+// While a block is being dragged we keep the live preview here (no store writes
+// happen until the mouse is released).
+interface DragState {
+  entry: CalendarEntry;
+  kind: "move" | "resize";
+  movedPx: number; // total cursor travel, to tell a click from a drag
+  // preview times (already snapped) committed on mouseup
+  start: number;
+  end: number;
+}
+const DRAG_THRESHOLD = 4; // px of travel before a press becomes a drag
+
 function TimeGrid({
   days,
   wide,
@@ -474,6 +678,8 @@ function TimeGrid({
   entriesOn,
   onOpen,
   onNewAt,
+  onMove,
+  onResize,
 }: {
   days: number[];
   wide?: boolean;
@@ -481,9 +687,90 @@ function TimeGrid({
   entriesOn: (dayMs: number) => CalendarEntry[];
   onOpen: (e: CalendarEntry) => void;
   onNewAt: (dayMs: number, hour: number) => void;
+  onMove: (entry: CalendarEntry, newStart: number) => void;
+  onResize: (entry: CalendarEntry, newEnd: number) => void;
 }) {
   const gridHeight = HOURS.length * SLOT_PX;
   const todayStart = startOfDay(Date.now());
+  const minPerPx = 60 / SLOT_PX;
+
+  // DOM refs to each day column so we can map cursor X→day and cursor Y→time.
+  const colRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  // Keep the latest drag in a ref so document listeners read fresh values.
+  const dragRef = useRef<DragState | null>(null);
+  dragRef.current = drag;
+
+  /** Map a cursor position to {dayMs, time} using the column under the cursor. */
+  function pointToTime(clientX: number, clientY: number): { dayMs: number; time: number } {
+    // Find the column whose horizontal box contains the cursor; fall back to
+    // the nearest end column so dragging past the edge still resolves a day.
+    let idx = 0;
+    let best = Infinity;
+    for (let i = 0; i < days.length; i++) {
+      const el = colRefs.current[i];
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (clientX >= r.left && clientX < r.right) {
+        idx = i;
+        best = 0;
+        break;
+      }
+      const dist = clientX < r.left ? r.left - clientX : clientX - r.right;
+      if (dist < best) {
+        best = dist;
+        idx = i;
+      }
+    }
+    const dayMs = days[idx];
+    const el = colRefs.current[idx];
+    const top = el ? el.getBoundingClientRect().top : 0;
+    const offsetY = Math.max(0, Math.min(clientY - top, gridHeight));
+    const dayTop = atHour(dayMs, DAY_START_HOUR);
+    const time = dayTop + offsetY * minPerPx * 60000;
+    return { dayMs, time };
+  }
+
+  function beginDrag(entry: CalendarEntry, kind: "move" | "resize", e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const grabTime = pointToTime(startX, startY).time;
+    // For a move, remember where inside the block the user grabbed so the block
+    // doesn't jump its top edge to the cursor.
+    const grabOffset = grabTime - entry.start;
+    const duration = entry.end - entry.start;
+
+    setDrag({ entry, kind, movedPx: 0, start: entry.start, end: entry.end });
+
+    function onMouseMove(ev: MouseEvent) {
+      const moved = Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY);
+      const { time } = pointToTime(ev.clientX, ev.clientY);
+      if (kind === "move") {
+        const newStart = snap(time - grabOffset);
+        setDrag({ entry, kind, movedPx: moved, start: newStart, end: newStart + duration });
+      } else {
+        const newEnd = Math.max(snap(time), entry.start + MIN_DURATION_MS);
+        setDrag({ entry, kind, movedPx: moved, start: entry.start, end: newEnd });
+      }
+    }
+    function onMouseUp() {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      const d = dragRef.current;
+      setDrag(null);
+      if (!d) return;
+      if (d.movedPx < DRAG_THRESHOLD) {
+        onOpen(entry); // treat as a click
+        return;
+      }
+      if (kind === "move") onMove(entry, d.start);
+      else onResize(entry, d.end);
+    }
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
 
   return (
     <div className={"cal-grid" + (wide ? " wide" : "")}>
@@ -518,7 +805,9 @@ function TimeGrid({
               {allDay.map((entry) => (
                 <div
                   key={entry.id}
-                  className={"cal-chip" + (entry.id === selectedId ? " selected" : "")}
+                  className={
+                    "cal-chip" + (isSelected(entry.id, selectedId) ? " selected" : "")
+                  }
                   style={{ background: typeColor(entry.type) }}
                   title={
                     entry.allDay ? entry.subject : `${fmtTime(entry.start)} ${entry.subject}`
@@ -526,6 +815,7 @@ function TimeGrid({
                   onClick={() => onOpen(entry)}
                 >
                   {!entry.allDay && <span className="cal-chip-time">{fmtTime(entry.start)}</span>}
+                  {entry.recurrence && <span className="cal-recur">↻</span>}
                   <span className="cal-chip-sub">{entry.subject}</span>
                 </div>
               ))}
@@ -546,10 +836,35 @@ function TimeGrid({
             ))}
           </div>
           {/* day columns */}
-          {days.map((dayMs) => {
-            const timed = entriesOn(dayMs).filter((e) => !e.allDay && e.type !== "reminder");
+          {days.map((dayMs, colIdx) => {
+            const dayTop = atHour(dayMs, DAY_START_HOUR);
+            const dayBottom = atHour(dayMs, DAY_END_HOUR + 1); // 8:00 PM
+            // Entries to draw in this column: the ones that fall on this day,
+            // minus a block being MOVED to another day, plus a block being
+            // moved INTO this day (so the preview follows the cursor's column).
+            const here = entriesOn(dayMs).filter((e) => !e.allDay && e.type !== "reminder");
+            const draggedOff =
+              drag && drag.kind === "move" && startOfDay(drag.start) !== startOfDay(dayMs)
+                ? drag.entry.id
+                : null;
+            let toDraw = draggedOff ? here.filter((e) => e.id !== draggedOff) : here;
+            if (
+              drag &&
+              drag.kind === "move" &&
+              startOfDay(drag.start) === startOfDay(dayMs) &&
+              !toDraw.some((e) => e.id === drag.entry.id)
+            ) {
+              toDraw = [...toDraw, drag.entry];
+            }
             return (
-              <div key={dayMs} className="cal-daycol" style={{ height: gridHeight }}>
+              <div
+                key={dayMs}
+                ref={(el) => {
+                  colRefs.current[colIdx] = el;
+                }}
+                className="cal-daycol"
+                style={{ height: gridHeight }}
+              >
                 {HOURS.map((h) => (
                   <div
                     key={h}
@@ -558,38 +873,46 @@ function TimeGrid({
                     onClick={() => onNewAt(dayMs, h)}
                   />
                 ))}
-                {timed.map((entry) => {
-                  const dayTop = atHour(dayMs, DAY_START_HOUR);
-                  const dayBottom = atHour(dayMs, DAY_END_HOUR + 1); // 8:00 PM
-                  const minPerPx = 60 / SLOT_PX;
+                {toDraw.map((entry) => {
+                  // While dragging, render the live preview for the dragged entry.
+                  const isDragging = drag != null && drag.entry.id === entry.id;
+                  const previewStart = isDragging ? drag!.start : entry.start;
+                  const previewEnd = isDragging ? drag!.end : entry.end;
                   // Clamp the entry's span into the visible window so entries that
                   // start before 7 AM or end after 7 PM never overflow the column.
-                  const vs = Math.min(Math.max(entry.start, dayTop), dayBottom);
-                  const ve = Math.min(Math.max(entry.end, vs), dayBottom);
+                  const vs = Math.min(Math.max(previewStart, dayTop), dayBottom);
+                  const ve = Math.min(Math.max(previewEnd, vs), dayBottom);
                   const top = (vs - dayTop) / 60000 / minPerPx;
                   const rawH = (ve - vs) / 60000 / minPerPx;
                   const height = Math.max(16, rawH || 16);
                   return (
                     <div
                       key={entry.id}
-                      className={"cal-block" + (entry.id === selectedId ? " selected" : "")}
+                      className={
+                        "cal-block" +
+                        (isSelected(entry.id, selectedId) ? " selected" : "") +
+                        (isDragging ? " dragging" : "")
+                      }
                       style={{
                         top,
                         height,
                         background: typeColor(entry.type),
                         borderColor: typeColor(entry.type),
                       }}
-                      title={`${fmtTime(entry.start)}–${fmtTime(entry.end)} ${entry.subject}`}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        onOpen(entry);
-                      }}
+                      title={`${fmtTime(previewStart)}–${fmtTime(previewEnd)} ${entry.subject}`}
+                      onMouseDown={(ev) => beginDrag(entry, "move", ev)}
                     >
                       <div className="cal-block-time">
-                        {fmtTime(entry.start)}–{fmtTime(entry.end)}
+                        {fmtTime(previewStart)}–{fmtTime(previewEnd)}
+                        {entry.recurrence && <span className="cal-recur"> ↻</span>}
                       </div>
                       <div className="cal-block-sub">{entry.subject}</div>
                       {entry.location && <div className="cal-block-loc">{entry.location}</div>}
+                      <div
+                        className="cal-block-resize"
+                        title="Drag to resize"
+                        onMouseDown={(ev) => beginDrag(entry, "resize", ev)}
+                      />
                     </div>
                   );
                 })}
@@ -642,7 +965,7 @@ function AllEntriesView({
           {sorted.map((e) => (
             <div
               key={e.id}
-              className={"view-row" + (e.id === selectedId ? " selected" : "")}
+              className={"view-row" + (isSelected(e.id, selectedId) ? " selected" : "")}
               onClick={() => onSelect(e.id)}
               onDoubleClick={() => onOpen(e)}
             >
@@ -657,6 +980,11 @@ function AllEntriesView({
                 {typeLabel(e.type)}
               </div>
               <div className="col" style={{ flex: 1 }}>
+                {e.recurrence && (
+                  <span className="cal-recur" title="Recurring series">
+                    ↻{" "}
+                  </span>
+                )}
                 {e.subject}
               </div>
               <div className="col" style={{ flex: "0 0 160px" }}>
@@ -783,7 +1111,46 @@ function EntryForm({
             />{" "}
             Alarm
           </label>
+          {draft.alarm && (
+            <label className="cal-check">
+              <input
+                type="number"
+                min={0}
+                step={5}
+                className="cal-alarm-min"
+                value={draft.alarmMinutes}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  set({ alarmMinutes: Number.isNaN(v) ? 0 : Math.max(0, v) });
+                }}
+              />{" "}
+              min before
+            </label>
+          )}
         </FieldRow>
+        <FieldRow label="Repeats">
+          <select
+            value={draft.repeat}
+            onChange={(e) => set({ repeat: e.target.value as RepeatChoice })}
+          >
+            <option value="none">Does not repeat</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </FieldRow>
+        {draft.repeat !== "none" && (
+          <FieldRow label="Until">
+            <input
+              type="date"
+              value={toDateInput(draft.until)}
+              onChange={(e) => {
+                const v = fromLocalInput(e.target.value + "T23:59");
+                if (!Number.isNaN(v)) set({ until: v });
+              }}
+            />
+          </FieldRow>
+        )}
         <FieldRow label="Category">
           <input
             type="text"

@@ -293,7 +293,7 @@
   font-size: var(--fs-xs);
   line-height: 1.3;
   overflow: hidden;
-  cursor: default;
+  cursor: grab;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 1px 1px 2px rgba(0, 0, 0, 0.25);
 }
 .cal-block:hover {
@@ -303,6 +303,32 @@
   outline: 2px solid #fff;
   outline-offset: -2px;
   box-shadow: 0 0 0 2px var(--sel);
+}
+/* While being dragged or resized: grabbing cursor + lifted appearance. */
+.cal-block.dragging {
+  cursor: grabbing;
+  z-index: 20;
+  opacity: 0.85;
+  box-shadow: 0 0 0 1px #fff inset, 2px 3px 8px rgba(0, 0, 0, 0.45);
+}
+/* The resize handle hugs the bottom edge of every block. */
+.cal-block-resize {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  cursor: ns-resize;
+  background: rgba(255, 255, 255, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+}
+.cal-block-resize:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+/* The small recurring "↻" marker shown on chips, blocks and list rows. */
+.cal-recur {
+  font-weight: bold;
+  opacity: 0.9;
 }
 .cal-block-time {
   font-weight: bold;
@@ -332,8 +358,14 @@
 .cal-form .field-val select,
 .cal-form .field-val input[type="text"],
 .cal-form .field-val input[type="datetime-local"],
+.cal-form .field-val input[type="date"],
 .cal-form .field-val textarea {
   width: 100%;
+}
+/* The alarm "minutes before" input sits inline next to the Alarm checkbox. */
+.cal-alarm-min {
+  width: 52px;
+  margin-right: 4px;
 }
 .cal-form textarea {
   resize: vertical;
