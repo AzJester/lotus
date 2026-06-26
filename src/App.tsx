@@ -109,6 +109,8 @@ function OpenLauncher({ onOpen }: { onOpen: (v: ViewId) => void }) {
 
 export default function App() {
   const { tabs, active, openView, closeTab, setActive, status } = useUI();
+  const theme = useUI((s) => s.theme);
+  const toggleTheme = useUI((s) => s.toggleTheme);
   const runSearch = useUI((s) => s.runSearch);
   const sendCmd = useUI((s) => s.sendCmd);
   const requestMemo = useUI((s) => s.requestMemo);
@@ -123,6 +125,16 @@ export default function App() {
   useEffect(() => {
     document.title = `${VIEWS[active].title} - IBM Lotus Notes`;
   }, [active]);
+
+  // Mirror the theme onto <html> so the desk/body background can respond too.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("theme-notes8", "theme-r5");
+    root.classList.add(`theme-${theme}`);
+    return () => {
+      root.classList.remove("theme-notes8", "theme-r5");
+    };
+  }, [theme]);
 
   // Global keyboard accelerators (matching the menu hints).
   useEffect(() => {
@@ -159,7 +171,7 @@ export default function App() {
   };
 
   return (
-    <div className="notes-window">
+    <div className={"notes-window theme-" + theme}>
       {/* Title bar — Windows XP "Luna" chrome with the IBM Lotus Notes 8 icon */}
       <div className="titlebar">
         <NotesLogo />
@@ -278,6 +290,20 @@ export default function App() {
           <span className="dot" />
         </div>
         <div className="status-cell grow">{status}</div>
+        <div className="status-cell" style={{ padding: "0 2px" }}>
+          <button
+            className="theme-toggle"
+            title={
+              theme === "notes8"
+                ? "Theme: Notes 8 — click for Classic (R5)"
+                : "Theme: Classic (R5) — click for Notes 8"
+            }
+            onClick={toggleTheme}
+          >
+            <span className="theme-swatch" aria-hidden />
+            {theme === "notes8" ? "Notes 8" : "Classic R5"}
+          </button>
+        </div>
         <div className="status-cell">{user.name}</div>
         <div className="status-cell" title="Inbox unread">
           ✉️ {unread} unread

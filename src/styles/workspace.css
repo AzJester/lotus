@@ -143,3 +143,24 @@
   background: var(--window);
   border-top: 1px solid var(--shadow);
 }
+
+/* --- Mobile / responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .ws-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .ws-tab {
+    flex: 0 0 auto;
+  }
+  .ws-felt {
+    padding: 12px;
+  }
+  .ws-grid {
+    gap: 12px;
+  }
+  .db-tile {
+    width: 100%;
+    max-width: 360px;
+  }
+}

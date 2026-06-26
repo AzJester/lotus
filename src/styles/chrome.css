@@ -511,3 +511,153 @@
   background: #3a8a3a;
   box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
 }
+
+/* --- Theme toggle (status bar) ------------------------------------------ */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 7px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--face-lighter);
+  cursor: default;
+  white-space: nowrap;
+}
+.theme-toggle:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+.theme-swatch {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  /* Notes 8 default: XP blue swatch. */
+  background: linear-gradient(135deg, #3a7ff0, #0a47bd);
+}
+.theme-r5 .theme-swatch {
+  /* Classic R5: teal swatch. */
+  background: linear-gradient(135deg, #2a8f7a, #0e5050);
+}
+
+/* ==========================================================================
+   THEME — Classic R5 chrome overrides
+   Hard-coded XP-blue gradients that the custom properties can't reach.
+   ========================================================================== */
+.theme-r5 .titlebar {
+  background: linear-gradient(
+    180deg,
+    #1f8f7e 0%,
+    #36b39c 8%,
+    #1f8a78 38%,
+    #117561 52%,
+    #0e5d4f 90%,
+    #2a9a85 100%
+  );
+  border-bottom: 1px solid #0a4036;
+}
+.theme-r5 .titlebar-btn {
+  background: linear-gradient(180deg, #58c2ad 0%, #2f9a85 40%, #14735f 100%);
+}
+.theme-r5 .titlebar-btn:active {
+  background: linear-gradient(180deg, #14735f, #2f9a85);
+}
+/* Keep the classic red close button — it reads as "close" in every era. */
+.theme-r5 .tb-appicon {
+  background: radial-gradient(circle at 32% 24%, #d7f0c8 0%, #8fce6a 42%, #4e9a2a 78%, #357015 100%);
+}
+.theme-r5 .tb-appicon-mark {
+  text-shadow: 0 1px 1px rgba(20, 70, 10, 0.6);
+}
+/* Bookmark rail goes cooler grey-teal to match the desk. */
+.theme-r5 .bookmark-bar {
+  background: linear-gradient(90deg, #aab4ac, #c0c8bd 60%, #b6bfb3);
+}
+/* The Notes 8 green Open launcher already fits the classic palette; nudge it
+   slightly toward the older flatter green. */
+.theme-r5 .open-btn {
+  background: linear-gradient(180deg, #6fb53e 0%, #468a22 55%, #357414 100%);
+  border-top-color: #9ed576;
+  border-left-color: #9ed576;
+}
+/* Active window tab: classic green-felt highlight instead of amber. */
+.theme-r5 .wtab.active {
+  background: linear-gradient(180deg, #e3f0cf 0%, #cfe3a8 60%, #bcd68c 100%);
+  border-top-color: #ecf6dc;
+  border-left-color: #ecf6dc;
+  border-right-color: #8fae5c;
+  border-bottom-color: #cfe3a8;
+}
+
+/* ==========================================================================
+   Mobile / responsive chrome
+   Toolbar search wraps, bookmark rail shrinks, tabs scroll, the status bar
+   wraps onto two rows on narrow phones. No horizontal page overflow.
+   ========================================================================== */
+@media (max-width: 720px) {
+  /* Toolbar: let the SmartIcons + search/address wrap onto a second row. */
+  .toolbar {
+    height: auto;
+    min-height: 27px;
+    flex-wrap: wrap;
+    padding: 2px 4px;
+  }
+  .toolbar .addr {
+    flex: 1 1 100%;
+    margin-left: 0;
+    margin-top: 2px;
+    justify-content: stretch;
+  }
+  .toolbar .addr input.tb-search {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  /* Bookmark rail: a touch narrower. */
+  .bookmark-bar {
+    width: 32px;
+    flex: 0 0 32px;
+  }
+  .bm-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+
+  /* Window tabs already scroll horizontally; keep them from growing too tall. */
+  .wtab {
+    max-width: 130px;
+  }
+
+  /* Status bar wraps so the cells don't push width past the viewport. */
+  .statusbar {
+    height: auto;
+    min-height: 22px;
+    flex-wrap: wrap;
+  }
+  .status-cell.grow {
+    flex: 1 0 50%;
+  }
+}
+
+/* Very narrow phones: hand the rail back some room by hiding the separator gap
+   and tightening the title bar text. */
+@media (max-width: 480px) {
+  .titlebar-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .titlebar-btn.close {
+    width: 36px;
+  }
+}

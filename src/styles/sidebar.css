@@ -202,3 +202,31 @@
 .sb-rail-icons .sb-rail-btn {
   filter: grayscale(0.2);
 }
+
+/* --- Classic R5 theme override ------------------------------------------ */
+.theme-r5 .sb-body {
+  background: linear-gradient(180deg, #e8efde, #d3decb);
+}
+.theme-r5 .sb-panel-head {
+  color: #1f3a2e;
+  background: linear-gradient(180deg, #e4f0d8 0%, #cfe0c0 55%, #c0d4ad 100%);
+  box-shadow: inset 0 -1px 0 #a9c096;
+}
+.theme-r5 .sb-panel-head:hover {
+  background: linear-gradient(180deg, #ecf6e2, #d7e6c9 55%, #c9dcb6);
+}
+.theme-r5 .sb-panel {
+  border-bottom-color: #9eb389;
+}
+.theme-r5 .sb-rail {
+  background: linear-gradient(90deg, #b6bfb1, #c6cfc2);
+}
+
+/* --- Mobile / responsive ------------------------------------------------ */
+/* On narrow screens collapse the sidebar to just its far-right icon rail so
+   the workpane gets the full width. */
+@media (max-width: 720px) {
+  .sb-body {
+    display: none;
+  }
+}
