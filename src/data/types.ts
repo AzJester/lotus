@@ -48,6 +48,26 @@ export interface MailMessage {
   /** Actual attached files (stored inline as data URLs). */
   attachments?: Attachment[];
   priority: Priority;
+  /** Ids of the custom folders this memo is filed under (a message can be in many). */
+  labels?: string[];
+}
+
+/** A user-created mail folder. Messages reference it by id in `labels`. */
+export interface CustomFolder {
+  id: string;
+  name: string;
+}
+
+/** A simple mail rule: when a field contains text, move or flag the message. */
+export interface MailRule {
+  id: string;
+  field: "from" | "subject" | "body";
+  contains: string;
+  action: "move" | "flag";
+  /** Target folder id when action is "move". */
+  folderId?: string;
+  /** Flag color applied when action is "flag". */
+  flagColor?: FlagColor;
 }
 
 // ---------------------------------------------------------------------------
