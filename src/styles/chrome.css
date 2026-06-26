@@ -231,10 +231,19 @@
   font-size: var(--fs-sm);
   color: var(--ink-muted);
 }
-.toolbar .addr input {
-  flex: 1;
-  max-width: 360px;
-  height: 19px;
+.toolbar .addr {
+  justify-content: flex-end;
+}
+.toolbar .addr input.tb-search {
+  flex: 0 0 230px;
+  max-width: 230px;
+  height: 20px;
+}
+.tb-search-btn {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 12px;
+  margin-left: 5px;
 }
 
 /* --- Body: bookmark bar + workpane -------------------------------------- */

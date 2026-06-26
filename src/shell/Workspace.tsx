@@ -70,6 +70,7 @@ export default function Workspace() {
     discussion: `${discussion.length} documents`,
     welcome: "",
     workspace: "",
+    search: "",
   };
 
   const current = PAGES[page];

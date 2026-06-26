@@ -20,6 +20,7 @@ import Contacts from "./apps/contacts/Contacts";
 import Todo from "./apps/todo/Todo";
 import Notebook from "./apps/journal/Notebook";
 import Discussion from "./apps/discussion/Discussion";
+import SearchResults from "./apps/search/SearchResults";
 
 const VIEW_COMPONENTS: Record<ViewId, () => JSX.Element> = {
   welcome: Welcome,
@@ -30,6 +31,7 @@ const VIEW_COMPONENTS: Record<ViewId, () => JSX.Element> = {
   todo: Todo,
   journal: Notebook,
   discussion: Discussion,
+  search: SearchResults,
 };
 
 // Order of the bookmark buttons down the left rail.
@@ -106,15 +108,54 @@ function OpenLauncher({ onOpen }: { onOpen: (v: ViewId) => void }) {
 
 export default function App() {
   const { tabs, active, openView, closeTab, setActive, status } = useUI();
+  const runSearch = useUI((s) => s.runSearch);
+  const sendCmd = useUI((s) => s.sendCmd);
+  const requestMemo = useUI((s) => s.requestMemo);
+  const setStatus = useUI((s) => s.setStatus);
   const mail = useNotes((s) => s.mail);
   const user = useNotes((s) => s.user);
   const unread = unreadCount(mail);
+
+  const [searchText, setSearchText] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = `${VIEWS[active].title} - IBM Lotus Notes`;
   }, [active]);
 
+  // Global keyboard accelerators (matching the menu hints).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      const typing =
+        el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        requestMemo("");
+      } else if (ctrl && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      } else if (ctrl && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        window.print();
+      } else if (e.key === "F9") {
+        e.preventDefault();
+        setStatus("View refreshed.");
+      } else if ((e.key === "Delete" || e.key === "Backspace") && !typing) {
+        e.preventDefault();
+        sendCmd("delete");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [requestMemo, sendCmd, setStatus]);
+
   const ActiveView = VIEW_COMPONENTS[active];
+
+  const submitSearch = () => {
+    if (searchText.trim()) runSearch(searchText.trim());
+  };
 
   return (
     <div className="notes-window">
@@ -152,15 +193,20 @@ export default function App() {
         <button className="tool-btn" title="Notebook" onClick={() => openView("journal")}>📓</button>
         <button className="tool-btn" title="Discussion" onClick={() => openView("discussion")}>💬</button>
         <div className="tool-sep" />
-        <button className="tool-btn" title="Print" onClick={() => window.print()}>🖨️</button>
+        <button className="tool-btn" title="Print (Ctrl+P)" onClick={() => window.print()}>🖨️</button>
         <div className="addr">
-          <label>Address</label>
           <input
-            type="text"
-            readOnly
-            value={`notes://acme/${active}.nsf`}
-            className="bevel-field"
+            ref={searchRef}
+            type="search"
+            className="bevel-field tb-search"
+            placeholder="Search all databases…"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitSearch();
+            }}
           />
+          <button className="btn tb-search-btn" onClick={submitSearch}>Search</button>
         </div>
       </div>
 

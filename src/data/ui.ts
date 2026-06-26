@@ -15,7 +15,8 @@ export type ViewId =
   | "contacts"
   | "todo"
   | "journal"
-  | "discussion";
+  | "discussion"
+  | "search";
 
 export interface OpenTab {
   view: ViewId;
@@ -40,7 +41,16 @@ export const VIEWS: Record<ViewId, ViewMeta> = {
   todo: { id: "todo", title: "To Do", bookmark: "To Do", color: "#b5651d", icon: "✅" },
   journal: { id: "journal", title: "Notebook", bookmark: "Notebook", color: "#2f5fa5", icon: "📓" },
   discussion: { id: "discussion", title: "Discussion", bookmark: "Discussion", color: "#a52f4f", icon: "💬" },
+  search: { id: "search", title: "Search Results", bookmark: "Search", color: "#555", icon: "🔍" },
 };
+
+/** A simple command bus so global keyboard shortcuts can reach whichever module
+ *  is currently active (e.g. Delete the selected document). The active module
+ *  watches `cmd` and acts when the name applies; `n` retriggers repeats. */
+export interface UICommand {
+  name: "new" | "delete" | "reply" | "refresh";
+  n: number;
+}
 
 /** A request to open Mail with the compose form pre-addressed (e.g. from a
  *  contact's "Write Memo" action). Consumed and cleared by the Mail module. */
@@ -56,6 +66,10 @@ interface UIState {
   status: string;
   /** A pending "new memo" request, consumed by the Mail module on open. */
   pendingMemo: PendingMemo | null;
+  /** Current global search query, shown by the Search Results view. */
+  searchQuery: string;
+  /** Latest keyboard command for the active module to consume. */
+  cmd: UICommand | null;
 
   openView: (view: ViewId) => void;
   closeTab: (view: ViewId) => void;
@@ -64,6 +78,10 @@ interface UIState {
   /** Open Mail and start a new memo addressed to `to`. */
   requestMemo: (to: string, subject?: string) => void;
   clearMemo: () => void;
+  /** Run a global search and open the results view. */
+  runSearch: (query: string) => void;
+  /** Dispatch a keyboard command to the active module. */
+  sendCmd: (name: UICommand["name"]) => void;
 }
 
 export const useUI = create<UIState>()(
@@ -73,6 +91,8 @@ export const useUI = create<UIState>()(
       active: "welcome",
       status: "Done",
       pendingMemo: null,
+      searchQuery: "",
+      cmd: null,
 
       openView: (view) =>
         set((s) => {
@@ -113,6 +133,19 @@ export const useUI = create<UIState>()(
           };
         }),
       clearMemo: () => set({ pendingMemo: null }),
+
+      runSearch: (query) =>
+        set((s) => {
+          const exists = s.tabs.some((t) => t.view === "search");
+          return {
+            searchQuery: query,
+            tabs: exists ? s.tabs : [...s.tabs, { view: "search" as ViewId }],
+            active: "search",
+            status: `Searching for "${query}"...`,
+          };
+        }),
+
+      sendCmd: (name) => set((s) => ({ cmd: { name, n: (s.cmd?.n ?? 0) + 1 } })),
     }),
     {
       name: "lotus-notes-ui",

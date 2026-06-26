@@ -6,7 +6,7 @@
 // classes (.app, .action-bar, .app-cols, .nav-pane, .list-pane, .preview-pane).
 // ============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNotes, uid } from "../../data/store";
 import { useUI } from "../../data/ui";
 import type { MailFolder, MailMessage, Person, Priority } from "../../data/types";
@@ -69,11 +69,31 @@ function parsePeople(raw: string): Person[] {
 const peopleStr = (ppl: Person[]) => ppl.map((p) => p.name || p.email).join(", ");
 
 // A plausible document "size" for the Size column (attachments dominate it).
-function sizeOf(m: MailMessage): string {
+function rawBytes(m: MailMessage): number {
   const text = m.subject.length + m.body.length + peopleStr(m.to).length + peopleStr(m.cc).length;
-  const bytes = text * 9 + 700 + (m.hasAttachment ? 470000 : 0);
+  return text * 9 + 700 + (m.hasAttachment ? 470000 : 0);
+}
+function sizeOf(m: MailMessage): string {
+  const bytes = rawBytes(m);
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}M`;
   return `${Math.max(1, Math.round(bytes / 1024))}K`;
+}
+
+const prioRank = (m: MailMessage) => (m.priority === "high" ? 0 : m.priority === "normal" ? 1 : 2);
+
+type SortKey = "who" | "subject" | "date" | "size" | "importance";
+
+// Notes-style date category for grouped views.
+function dateGroup(ms: number): string {
+  const d0 = new Date();
+  d0.setHours(0, 0, 0, 0);
+  const today = d0.getTime();
+  const day = 86400000;
+  if (ms >= today) return "Today";
+  if (ms >= today - day) return "Yesterday";
+  if (ms >= today - 7 * day) return "This Week";
+  if (ms >= today - 14 * day) return "Last Week";
+  return "Older";
 }
 
 export default function Mail() {
@@ -90,11 +110,27 @@ export default function Mail() {
   const setStatus = useUI((s) => s.setStatus);
   const pendingMemo = useUI((s) => s.pendingMemo);
   const clearMemo = useUI((s) => s.clearMemo);
+  const cmd = useUI((s) => s.cmd);
+  const lastCmd = useRef<number>(useUI.getState().cmd?.n ?? 0);
 
   const [nav, setNav] = useState<NavKey>("inbox");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [compose, setCompose] = useState<Compose | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [colW, setColW] = useState({ who: 150, date: 112, size: 56 });
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Respond to global keyboard commands while Mail is the active view.
+  useEffect(() => {
+    if (!cmd || cmd.n === lastCmd.current) return;
+    lastCmd.current = cmd.n;
+    if (cmd.name === "delete") del();
+    else if (cmd.name === "new") newMemo();
+    else if (cmd.name === "reply") reply(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmd]);
 
   // Honour a "Write Memo" request handed over from another module (e.g. Contacts).
   useEffect(() => {
@@ -111,6 +147,8 @@ export default function Mail() {
     }
   }, [pendingMemo, clearMemo]);
 
+  const showsSender = nav === "sent" || nav === "drafts";
+
   const messages = useMemo(() => {
     let list: MailMessage[];
     if (nav === "followup") list = mail.filter((m) => m.flagged && m.folder !== "trash");
@@ -126,14 +164,102 @@ export default function Mail() {
           m.from.name.toLowerCase().includes(q),
       );
     }
-    return [...list].sort((a, b) => b.date - a.date);
-  }, [mail, nav, search]);
+    const who = (m: MailMessage) => (showsSender ? peopleStr(m.to) : m.from.name).toLowerCase();
+    const cmp = (a: MailMessage, b: MailMessage) => {
+      let r = 0;
+      if (sortKey === "who") r = who(a).localeCompare(who(b));
+      else if (sortKey === "subject") r = a.subject.localeCompare(b.subject);
+      else if (sortKey === "size") r = rawBytes(a) - rawBytes(b);
+      else if (sortKey === "importance") r = prioRank(a) - prioRank(b);
+      else r = a.date - b.date;
+      return r * sortDir || b.date - a.date;
+    };
+    return [...list].sort(cmp);
+  }, [mail, nav, search, sortKey, sortDir, showsSender]);
+
+  // When sorted by date, present Notes-style collapsible date categories.
+  const groups = useMemo(() => {
+    if (sortKey !== "date") return null;
+    const out: { label: string; items: MailMessage[] }[] = [];
+    for (const m of messages) {
+      const g = dateGroup(m.date);
+      const last = out[out.length - 1];
+      if (!last || last.label !== g) out.push({ label: g, items: [m] });
+      else last.items.push(m);
+    }
+    return out;
+  }, [messages, sortKey]);
 
   const selected = mail.find((m) => m.id === selectedId) ?? null;
   const inboxUnread = mail.filter((m) => m.folder === "inbox" && !m.read).length;
   const draftCount = mail.filter((m) => m.folder === "drafts").length;
   const flagCount = mail.filter((m) => m.flagged && m.folder !== "trash").length;
-  const showsSender = nav === "sent" || nav === "drafts";
+
+  function sortBy(k: SortKey) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortKey(k);
+      setSortDir(k === "date" ? -1 : 1);
+    }
+  }
+  const arrow = (k: SortKey) => (sortKey === k ? (sortDir === 1 ? " ▲" : " ▼") : "");
+
+  function startResize(col: "who" | "date" | "size", e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = colW[col];
+    const onMove = (ev: MouseEvent) =>
+      setColW((w) => ({ ...w, [col]: Math.max(44, startW + (ev.clientX - startX)) }));
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  function toggleGroup(label: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
+  const renderRow = (m: MailMessage) => {
+    const who = showsSender ? peopleStr(m.to) || "—" : m.from.name;
+    const unread = !m.read && m.folder === "inbox";
+    return (
+      <div
+        key={m.id}
+        className={
+          "view-row" +
+          (m.id === selectedId ? " selected" : "") +
+          (unread ? " unread" : "") +
+          (m.flagged ? " row-" + (m.flagColor ?? "yellow") : "")
+        }
+        onClick={() => selectMessage(m)}
+        onDoubleClick={() => (m.folder === "drafts" ? editDraft(m) : selectMessage(m))}
+      >
+        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+          {m.priority === "high" ? <span className="prio-high">!</span> : ""}
+        </div>
+        <div className="col" style={{ flex: `0 0 ${colW.who}px` }}>{who}</div>
+        <div className="col" style={{ flex: 1 }}>{m.subject}</div>
+        <div className="col" style={{ flex: `0 0 ${colW.date}px` }}>{fmtListDate(m.date)}</div>
+        <div className="col col-r" style={{ flex: `0 0 ${colW.size}px` }}>{sizeOf(m)}</div>
+        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+          {unread ? <span className="unread-dot" /> : <span className="read-ring" />}
+        </div>
+        <div className="col col-c" style={{ flex: "0 0 20px" }}>{m.hasAttachment ? "📎" : ""}</div>
+        <div className="col col-c" style={{ flex: "0 0 20px" }}>
+          {m.flagged ? <span className={"flagmark " + (m.flagColor ?? "yellow")}>⚑</span> : ""}
+        </div>
+      </div>
+    );
+  };
 
   function selectMessage(m: MailMessage) {
     setSelectedId(m.id);
@@ -342,53 +468,47 @@ export default function Mail() {
             <div className="list-pane mail-list">
               <div className="view">
                 <div className="view-head">
-                  <div className="col col-c" style={{ flex: "0 0 20px" }} title="Importance">!</div>
-                  <div className="col" style={{ flex: "0 0 150px" }}>
-                    {showsSender ? "Recipient" : "Sender"}
+                  <div className="col col-c sortable" style={{ flex: "0 0 20px" }} title="Importance"
+                    onClick={() => sortBy("importance")}>!{arrow("importance")}</div>
+                  <div className="col sortable resizable" style={{ flex: `0 0 ${colW.who}px` }}
+                    onClick={() => sortBy("who")}>
+                    {showsSender ? "Recipient" : "Sender"}{arrow("who")}
+                    <span className="col-resize" onMouseDown={(e) => startResize("who", e)} />
                   </div>
-                  <div className="col" style={{ flex: 1 }}>Subject</div>
-                  <div className="col" style={{ flex: "0 0 112px" }}>Date ▾</div>
-                  <div className="col col-r" style={{ flex: "0 0 50px" }}>Size</div>
+                  <div className="col sortable" style={{ flex: 1 }} onClick={() => sortBy("subject")}>
+                    Subject{arrow("subject")}
+                  </div>
+                  <div className="col sortable resizable" style={{ flex: `0 0 ${colW.date}px` }}
+                    onClick={() => sortBy("date")}>
+                    Date{arrow("date")}
+                    <span className="col-resize" onMouseDown={(e) => startResize("date", e)} />
+                  </div>
+                  <div className="col col-r sortable resizable" style={{ flex: `0 0 ${colW.size}px` }}
+                    onClick={() => sortBy("size")}>
+                    Size{arrow("size")}
+                    <span className="col-resize" onMouseDown={(e) => startResize("size", e)} />
+                  </div>
                   <div className="col col-c" style={{ flex: "0 0 20px" }} title="Read status">○</div>
                   <div className="col col-c" style={{ flex: "0 0 20px" }} title="Attachment">📎</div>
                   <div className="col col-c" style={{ flex: "0 0 20px" }} title="Follow up">⚑</div>
                 </div>
                 <div className="view-body">
                   {messages.length === 0 && <div className="view-empty">No documents in this view.</div>}
-                  {messages.map((m) => {
-                    const who = showsSender ? peopleStr(m.to) || "—" : m.from.name;
-                    const unread = !m.read && m.folder === "inbox";
-                    return (
-                      <div
-                        key={m.id}
-                        className={
-                          "view-row" +
-                          (m.id === selectedId ? " selected" : "") +
-                          (unread ? " unread" : "") +
-                          (m.flagged ? " row-" + (m.flagColor ?? "yellow") : "")
-                        }
-                        onClick={() => selectMessage(m)}
-                        onDoubleClick={() => (m.folder === "drafts" ? editDraft(m) : selectMessage(m))}
-                      >
-                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
-                          {m.priority === "high" ? <span className="prio-high">!</span> : ""}
-                        </div>
-                        <div className="col" style={{ flex: "0 0 150px" }}>{who}</div>
-                        <div className="col" style={{ flex: 1 }}>{m.subject}</div>
-                        <div className="col" style={{ flex: "0 0 112px" }}>{fmtListDate(m.date)}</div>
-                        <div className="col col-r" style={{ flex: "0 0 50px" }}>{sizeOf(m)}</div>
-                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
-                          {unread ? <span className="unread-dot" /> : <span className="read-ring" />}
-                        </div>
-                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
-                          {m.hasAttachment ? "📎" : ""}
-                        </div>
-                        <div className="col col-c" style={{ flex: "0 0 20px" }}>
-                          {m.flagged ? <span className={"flagmark " + (m.flagColor ?? "yellow")}>⚑</span> : ""}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {groups
+                    ? groups.map((g) => {
+                        const isCollapsed = collapsed.has(g.label);
+                        return (
+                          <div key={g.label}>
+                            <div className="view-group" onClick={() => toggleGroup(g.label)}>
+                              <span className="nav-twistie">{isCollapsed ? "▶" : "▼"}</span>
+                              <span className="view-group-label">{g.label}</span>
+                              <span className="view-group-count">({g.items.length})</span>
+                            </div>
+                            {!isCollapsed && g.items.map(renderRow)}
+                          </div>
+                        );
+                      })
+                    : messages.map(renderRow)}
                 </div>
               </div>
             </div>
@@ -410,6 +530,7 @@ export default function Mail() {
 
 // --- Reading pane -----------------------------------------------------------
 function MemoReader({ msg, isDraft, onEdit }: { msg: MailMessage; isDraft: boolean; onEdit: () => void }) {
+  const [showDetails, setShowDetails] = useState(false);
   return (
     <div className="form memo-reader">
       <div className="memo-head">
@@ -420,17 +541,35 @@ function MemoReader({ msg, isDraft, onEdit }: { msg: MailMessage; isDraft: boole
             {msg.subject}
           </div>
           <div className="memo-line">
-            <b>{msg.from.name}</b> <span className="muted">&lt;{msg.from.email}&gt;</span>
+            <b>{msg.from.name}</b>{" "}
+            <span className="muted">to {peopleStr(msg.to) || "—"}</span>
+            <span className="memo-date">{fmtDateTime(msg.date)}</span>
+            <a
+              className="memo-details-toggle"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowDetails((s) => !s);
+              }}
+            >
+              {showDetails ? "Hide Details" : "Show Details"}
+            </a>
           </div>
-          <div className="memo-line muted">
-            To: {peopleStr(msg.to) || "—"}
-            {msg.cc.length > 0 && <> &nbsp;·&nbsp; Cc: {peopleStr(msg.cc)}</>}
-          </div>
-          <div className="memo-line muted">{fmtDateTime(msg.date)}</div>
+          {showDetails && (
+            <div className="memo-details">
+              <div className="memo-line muted">From: {msg.from.name} &lt;{msg.from.email}&gt;</div>
+              <div className="memo-line muted">To: {peopleStr(msg.to) || "—"}</div>
+              {msg.cc.length > 0 && <div className="memo-line muted">Cc: {peopleStr(msg.cc)}</div>}
+              <div className="memo-line muted">Date: {fmtDateTime(msg.date)}</div>
+              <div className="memo-line muted">
+                Importance: {msg.priority[0].toUpperCase() + msg.priority.slice(1)}
+              </div>
+              <div className="memo-line muted">
+                Custom expiration date: {fmtDateTime(msg.date + 365 * 86400000)}
+              </div>
+            </div>
+          )}
         </div>
-        {isDraft && (
-          <button className="btn" onClick={onEdit}>Edit Draft</button>
-        )}
+        {isDraft && <button className="btn" onClick={onEdit}>Edit Draft</button>}
       </div>
       <div className="memo-body">{msg.body}</div>
     </div>
