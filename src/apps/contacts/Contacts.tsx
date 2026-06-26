@@ -20,6 +20,7 @@ import {
   FieldRow,
 } from "../../components/ui";
 import { initials } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/contacts.css";
 
 // The three built-in views, plus one generated nav-item per category found and
@@ -546,6 +547,8 @@ export default function Contacts() {
           </div>
         </div>
 
+        <Splitter />
+
         {/* Contact list */}
         <div className="list-pane contacts-list">
           <div className="view">
@@ -562,6 +565,8 @@ export default function Contacts() {
             </div>
           </div>
         </div>
+
+        <Splitter />
 
         {/* Business-card preview (or a group summary when none selected) */}
         <div className="preview-pane">

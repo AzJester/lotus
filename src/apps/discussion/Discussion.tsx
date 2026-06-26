@@ -18,6 +18,7 @@ import {
   Twistie,
 } from "../../components/ui";
 import { fmtListDate, fmtDateTime } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/discussion.css";
 
 type NavKey = "all" | "by-category" | string; // "cat:<name>" for a category filter
@@ -299,6 +300,8 @@ export default function Discussion() {
           </div>
         </div>
 
+        <Splitter />
+
         {compose ? (
           <ComposeForm
             compose={compose}
@@ -363,6 +366,8 @@ export default function Discussion() {
                 </div>
               </div>
             </div>
+
+            <Splitter />
 
             {/* Reading pane */}
             <div className="preview-pane">

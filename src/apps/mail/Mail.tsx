@@ -27,6 +27,7 @@ import {
   Dialog,
 } from "../../components/ui";
 import { fmtListDate, fmtDateTime, initials } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/mail.css";
 
 // A custom-folder selection is encoded as `label:<folderId>`.
@@ -743,6 +744,8 @@ export default function Mail() {
           )}
         </div>
 
+        <Splitter />
+
         {compose ? (
           <ComposeForm
             key={compose.draftId ?? "new:" + compose.subject}
@@ -802,6 +805,8 @@ export default function Mail() {
                 </div>
               </div>
             </div>
+
+            <Splitter vertical />
 
             {/* Reading pane (below the list, as in Notes 8) */}
             <div className="preview-pane">

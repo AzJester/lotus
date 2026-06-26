@@ -18,6 +18,7 @@ import {
   FieldRow,
 } from "../../components/ui";
 import { fmtListDate, fmtDateLong, toDateInput, startOfDay } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/todo.css";
 
 // A view is either a grouping mode or a quick filter.
@@ -370,6 +371,7 @@ export default function Todo() {
         </div>
 
         {/* Task list */}
+        <Splitter />
         <div className="list-pane todo-list">
           <div className="view">
             <div className="view-head">
@@ -428,6 +430,8 @@ export default function Todo() {
             </div>
           </div>
         </div>
+
+        <Splitter />
 
         {/* Detail / edit pane */}
         <div className="preview-pane">
