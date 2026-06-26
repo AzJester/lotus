@@ -17,6 +17,7 @@ import {
   ActionSpacer,
 } from "../../components/ui";
 import { fmtListDate, fmtDateTime } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/notebook.css";
 
 type NavKey = "all" | "by-category" | { cat: string };
@@ -170,6 +171,8 @@ export default function Notebook() {
           )}
         </div>
 
+        <Splitter />
+
         {/* Document list */}
         <div className="list-pane notebook-list">
           <div className="view">
@@ -202,6 +205,8 @@ export default function Notebook() {
             </div>
           </div>
         </div>
+
+        <Splitter />
 
         {/* Editor / reading pane */}
         <div className="preview-pane">

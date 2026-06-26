@@ -377,6 +377,29 @@ textarea.memo-body {
   padding: 8px 12px 12px;
 }
 
+/* --- Draggable pane splitters ------------------------------------------- */
+.pane-splitter {
+  flex: 0 0 5px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: var(--face);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow);
+  z-index: 3;
+}
+.pane-splitter:hover {
+  background: var(--sel-soft);
+}
+.pane-splitter.vertical {
+  flex: 0 0 5px;
+  width: auto;
+  cursor: row-resize;
+  border-left: none;
+  border-right: none;
+  border-top: 1px solid var(--hl);
+  border-bottom: 1px solid var(--shadow);
+}
+
 /* ==========================================================================
    Mobile / responsive (HCL Nomad-style)
    Below ~720px the three-pane module layout stacks into a single column: the
@@ -384,6 +407,11 @@ textarea.memo-body {
    stack vertically. Desktop (>=720px) is left exactly as-is.
    ========================================================================== */
 @media (max-width: 720px) {
+  /* Stacked layout doesn't use the drag splitters. */
+  .pane-splitter {
+    display: none;
+  }
+
   .app-cols {
     flex-direction: column;
     overflow-y: auto;

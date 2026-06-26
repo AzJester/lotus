@@ -35,6 +35,7 @@ import {
   MONTHS,
   DAYS_ABBR,
 } from "../../lib/format";
+import { Splitter } from "../../components/Splitter";
 import "../../styles/calendar.css";
 
 // --- view modes -------------------------------------------------------------
@@ -538,6 +539,8 @@ export default function Calendar() {
             ))}
           </div>
         </div>
+
+        <Splitter />
 
         {/* Calendar surface */}
         <div className="cal-surface">
