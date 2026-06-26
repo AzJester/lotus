@@ -256,4 +256,97 @@
 .compose-body {
   flex: 1;
   margin: 8px 10px 10px;
+  overflow-y: auto;
+  outline: none;
+}
+div.compose-body[contenteditable]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* Formatting + attach toolbar */
+.compose-format {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  background: var(--face);
+  border-bottom: 1px solid var(--shadow);
+}
+.fmt-btn {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: var(--fs);
+  background: var(--face);
+  border: 1px solid transparent;
+}
+.fmt-btn:hover {
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+}
+.fmt-btn:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+}
+.fmt-sep {
+  width: 0;
+  height: 16px;
+  border-left: 1px solid var(--shadow);
+  border-right: 1px solid var(--hl);
+  margin: 0 3px;
+}
+
+/* Attachment chips (compose + reader) */
+.compose-attachments,
+.memo-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fbfaf2;
+  border-bottom: 1px solid var(--grid);
+}
+.memo-attachments {
+  border-bottom: none;
+  border-top: 1px solid var(--grid);
+}
+.attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  background: #fff;
+  border: 1px solid var(--shadow);
+  border-radius: 3px;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  color: var(--ink);
+}
+a.attach-chip:hover {
+  background: #eef3fb;
+}
+.attach-name {
+  font-weight: bold;
+}
+.attach-size {
+  color: var(--ink-muted);
+  font-size: var(--fs-xs);
+}
+.attach-x {
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 0 2px;
+}
+.attach-x:hover {
+  color: var(--unread);
+}
+
+/* Quoted text in replies/forwards */
+.memo-quote {
+  border-left: 3px solid #c9c4b8;
+  padding-left: 8px;
+  color: #444;
 }
