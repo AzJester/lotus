@@ -60,6 +60,14 @@ export type CalEntryType =
   | "event"
   | "anniversary";
 
+export type RecurFreq = "daily" | "weekly" | "monthly";
+
+export interface Recurrence {
+  freq: RecurFreq;
+  /** Inclusive end of the series, epoch ms. */
+  until: number;
+}
+
 export interface CalendarEntry {
   id: ID;
   type: CalEntryType;
@@ -72,6 +80,10 @@ export interface CalendarEntry {
   invitees: Person[];
   category: string;
   alarm: boolean;
+  /** Minutes before start to alert. Defaults to 15 when alarm is on. */
+  alarmMinutes?: number;
+  /** When set, this entry is a recurring master that expands into occurrences. */
+  recurrence?: Recurrence;
 }
 
 // ---------------------------------------------------------------------------
