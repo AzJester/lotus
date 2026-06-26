@@ -113,7 +113,7 @@ export default function App() {
   const unread = unreadCount(mail);
 
   useEffect(() => {
-    document.title = `${VIEWS[active].title} - Lotus Notes`;
+    document.title = `${VIEWS[active].title} - IBM Lotus Notes`;
   }, [active]);
 
   const ActiveView = VIEW_COMPONENTS[active];
@@ -123,7 +123,7 @@ export default function App() {
       {/* Title bar */}
       <div className="titlebar">
         <NotesLogo />
-        <span className="titlebar-title">{VIEWS[active].title} - Lotus Notes</span>
+        <span className="titlebar-title">{VIEWS[active].title} - IBM Lotus Notes</span>
         <span className="titlebar-spacer" />
         <div className="titlebar-btns">
           <span className="titlebar-btn">_</span>

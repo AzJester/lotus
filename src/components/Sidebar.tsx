@@ -74,19 +74,6 @@ export default function Sidebar() {
     <div className={"sidebar" + (open ? "" : " closed")}>
       {open && (
         <div className="sb-body">
-          <Panel title="Day-At-A-Glance" icon="📆">
-            {today.length === 0 ? (
-              <div className="sb-empty">No entries today.</div>
-            ) : (
-              today.map((e) => (
-                <div key={e.id} className="sb-row" onClick={() => openView("calendar")}>
-                  <span className="sb-time">{e.allDay ? "All day" : fmtTime(e.start)}</span>
-                  <span className="sb-text">{e.subject}</span>
-                </div>
-              ))
-            )}
-          </Panel>
-
           <Panel title={`Sametime Contacts (${onlineCount})`} icon="💬">
             {buddies.map(({ c, status }) => (
               <div
@@ -105,6 +92,23 @@ export default function Sidebar() {
             {buddies.length === 0 && <div className="sb-empty">No contacts.</div>}
           </Panel>
 
+          <Panel title="Activities" icon="📋" defaultOpen={false}>
+            <div className="sb-empty">No activities. Create one to get started.</div>
+          </Panel>
+
+          <Panel title="Day-At-A-Glance" icon="📆">
+            {today.length === 0 ? (
+              <div className="sb-empty">No entries today.</div>
+            ) : (
+              today.map((e) => (
+                <div key={e.id} className="sb-row" onClick={() => openView("calendar")}>
+                  <span className="sb-time">{e.allDay ? "All day" : fmtTime(e.start)}</span>
+                  <span className="sb-text">{e.subject}</span>
+                </div>
+              ))
+            )}
+          </Panel>
+
           <Panel title="Feeds" icon="📡" defaultOpen={false}>
             {FEEDS.map((f) => (
               <div
@@ -120,6 +124,21 @@ export default function Sidebar() {
               </div>
             ))}
           </Panel>
+
+          <Panel title="Lotus Quickr" icon="🗂️" defaultOpen={false}>
+            <div className="sb-empty">No Quickr places connected.</div>
+          </Panel>
+
+          <Panel title="SideKick!" icon="🗺️" defaultOpen={false}>
+            <div className="sb-sidekick">
+              <div className="sb-text" style={{ fontWeight: "bold" }}>Get Directions…</div>
+              <div className="sb-text muted">4 Yawkey Way</div>
+              <div className="sb-text muted">Boston, MA 02215</div>
+              <div className="sb-map" aria-hidden>
+                <span className="sb-map-pin">📍</span>
+              </div>
+            </div>
+          </Panel>
         </div>
       )}
 
@@ -133,10 +152,12 @@ export default function Sidebar() {
           {open ? "▶" : "◀"}
         </button>
         <div className="sb-rail-icons">
-          <span className="sb-rail-btn" title="Day-At-A-Glance">📆</span>
           <span className="sb-rail-btn" title="Sametime Contacts">💬</span>
+          <span className="sb-rail-btn" title="Activities">📋</span>
+          <span className="sb-rail-btn" title="Day-At-A-Glance">📆</span>
           <span className="sb-rail-btn" title="Feeds">📡</span>
-          <span className="sb-rail-btn" title="SideKick">🗺️</span>
+          <span className="sb-rail-btn" title="Lotus Quickr">🗂️</span>
+          <span className="sb-rail-btn" title="SideKick!">🗺️</span>
         </div>
       </div>
     </div>
