@@ -54,7 +54,7 @@ export default function Sidebar() {
   const [open, setOpen] = useState(true);
   const { calendar, contacts } = useNotes();
   const openView = useUI((s) => s.openView);
-  const requestMemo = useUI((s) => s.requestMemo);
+  const openChat = useUI((s) => s.openChat);
   const setStatus = useUI((s) => s.setStatus);
 
   const now = Date.now();
@@ -80,7 +80,7 @@ export default function Sidebar() {
                 key={c.id}
                 className="sb-buddy"
                 title={`Chat with ${c.firstName} ${c.lastName}`}
-                onClick={() => requestMemo(c.email || `${c.firstName} ${c.lastName}`)}
+                onClick={() => openChat(`${c.firstName} ${c.lastName}`)}
               >
                 <span className={"sb-presence " + status} />
                 <span className="sb-avatar">{initials(`${c.firstName} ${c.lastName}`)}</span>

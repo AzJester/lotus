@@ -11,6 +11,7 @@ import type { ViewId } from "./data/ui";
 import { unreadCount, useNotes } from "./data/store";
 import MenuBar from "./components/MenuBar";
 import Sidebar from "./components/Sidebar";
+import ChatDock from "./components/ChatDock";
 
 import Welcome from "./shell/Welcome";
 import Workspace from "./shell/Workspace";
@@ -286,6 +287,9 @@ export default function App() {
           ▲ Online
         </div>
       </div>
+
+      {/* Sametime chat windows overlay the whole desktop, bottom-right. */}
+      <ChatDock />
     </div>
   );
 }
