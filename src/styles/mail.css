@@ -26,6 +26,67 @@
   border-right: none;
 }
 
+/* Sortable + resizable column headers */
+.mail-list .view-head .col.sortable {
+  cursor: pointer;
+  position: relative;
+}
+.mail-list .view-head .col.sortable:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+.mail-list .view-head .col .col-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+/* Date category (group) rows */
+.mail-list .view-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 19px;
+  padding: 0 6px;
+  background: linear-gradient(180deg, #eef1f6, #dfe4ee);
+  border-bottom: 1px solid var(--grid);
+  border-top: 1px solid #fff;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  position: sticky;
+}
+.mail-list .view-group:hover {
+  background: #e2e8f4;
+}
+.mail-list .view-group-label {
+  font-weight: bold;
+  color: var(--ink-soft);
+}
+.mail-list .view-group-count {
+  color: var(--ink-muted);
+}
+
+/* Reader: Show Details */
+.memo-date {
+  color: var(--ink-muted);
+  margin-left: 10px;
+}
+.memo-details-toggle {
+  margin-left: 10px;
+  color: var(--link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.memo-details {
+  margin-top: 5px;
+  padding: 6px 8px;
+  background: #f6f6ef;
+  border: 1px solid var(--grid);
+}
+
 /* Folder counts shown inline as "Inbox (19)" with a bold folder name */
 .mail-app .nav-label.has-count {
   font-weight: bold;

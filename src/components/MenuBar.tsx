@@ -22,7 +22,40 @@ export default function MenuBar() {
   const openView = useUI((s) => s.openView);
   const setStatus = useUI((s) => s.setStatus);
   const resetAll = useNotes((s) => s.resetAll);
+  const exportAll = useNotes((s) => s.exportAll);
+  const importAll = useNotes((s) => s.importAll);
   const barRef = useRef<HTMLDivElement>(null);
+
+  function doExport() {
+    setOpen(null);
+    const blob = new Blob([exportAll()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `lotus-notes-${stamp}.nsf.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus("Workspace exported.");
+  }
+
+  function doImport() {
+    setOpen(null);
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json,application/json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const ok = importAll(String(reader.result));
+        setStatus(ok ? "Workspace imported." : "Import failed: invalid file.");
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +82,9 @@ export default function MenuBar() {
       { label: "Open", onClick: go("workspace") },
       { sep: true },
       { label: "Print...", accel: "Ctrl+P", onClick: () => { setOpen(null); window.print(); } },
+      { sep: true },
+      { label: "Export Workspace... (.nsf.json)", onClick: doExport },
+      { label: "Import Workspace...", onClick: doImport },
       { sep: true },
       { label: "Replication", disabled: true },
       { sep: true },

@@ -74,13 +74,17 @@ export interface NotesState {
 
   // --- maintenance ---
   resetAll: () => void;
+  /** Serialize the entire workspace to a JSON string (the "NSF" backup). */
+  exportAll: () => string;
+  /** Replace the workspace from an exported JSON string. Returns success. */
+  importAll: (json: string) => boolean;
 }
 
 const seed = buildSeed();
 
 export const useNotes = create<NotesState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: seed.user,
       mail: seed.mail,
       calendar: seed.calendar,
@@ -183,6 +187,48 @@ export const useNotes = create<NotesState>()(
           journal: fresh.journal,
           discussion: fresh.discussion,
         });
+      },
+
+      exportAll: () => {
+        const s = get();
+        return JSON.stringify(
+          {
+            app: "lotus-notes",
+            version: 1,
+            exportedAt: Date.now(),
+            data: {
+              user: s.user,
+              mail: s.mail,
+              calendar: s.calendar,
+              contacts: s.contacts,
+              todos: s.todos,
+              journal: s.journal,
+              discussion: s.discussion,
+            },
+          },
+          null,
+          2,
+        );
+      },
+
+      importAll: (json) => {
+        try {
+          const parsed = JSON.parse(json);
+          const d = parsed?.data ?? parsed;
+          if (!d || typeof d !== "object") return false;
+          set({
+            user: d.user ?? get().user,
+            mail: Array.isArray(d.mail) ? d.mail : [],
+            calendar: Array.isArray(d.calendar) ? d.calendar : [],
+            contacts: Array.isArray(d.contacts) ? d.contacts : [],
+            todos: Array.isArray(d.todos) ? d.todos : [],
+            journal: Array.isArray(d.journal) ? d.journal : [],
+            discussion: Array.isArray(d.discussion) ? d.discussion : [],
+          });
+          return true;
+        } catch {
+          return false;
+        }
       },
     }),
     {
