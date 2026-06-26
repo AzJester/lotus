@@ -376,3 +376,55 @@ textarea.memo-body {
   gap: 8px;
   padding: 8px 12px 12px;
 }
+
+/* ==========================================================================
+   Mobile / responsive (HCL Nomad-style)
+   Below ~720px the three-pane module layout stacks into a single column: the
+   navigator becomes a short horizontal scrollable strip, and the list + preview
+   stack vertically. Desktop (>=720px) is left exactly as-is.
+   ========================================================================== */
+@media (max-width: 720px) {
+  .app-cols {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* Navigator → horizontal scrolling strip across the top. */
+  .nav-pane {
+    width: auto;
+    flex: 0 0 auto;
+    max-height: 96px;
+    border-right: none;
+    border-bottom: 1px solid var(--shadow);
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+
+  /* List and preview stack and each take a reasonable slice of height. */
+  .list-pane {
+    flex: 0 0 auto;
+    min-height: 180px;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid var(--shadow);
+  }
+  .preview-pane {
+    flex: 1 1 auto;
+    min-height: 220px;
+  }
+
+  /* Action bar wraps instead of overflowing. */
+  .action-bar {
+    height: auto;
+    min-height: 26px;
+    flex-wrap: wrap;
+  }
+  .action-search input {
+    width: 120px;
+  }
+
+  /* Tighter form labels so memos/contacts fit narrow widths. */
+  .field-label {
+    flex-basis: 72px;
+  }
+}

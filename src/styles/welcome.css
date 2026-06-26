@@ -184,3 +184,46 @@
   color: var(--ink-muted);
   font-size: var(--fs-sm);
 }
+
+/* --- Classic R5 theme overrides ----------------------------------------- */
+.theme-r5 .welcome-masthead {
+  background: linear-gradient(120deg, #0e5050 0%, #1f7a6a 45%, #2e8b78 100%);
+  border-bottom: 2px solid #0a3e38;
+}
+.theme-r5 .panel-head {
+  background: linear-gradient(180deg, #2e9a82, #157060);
+}
+.theme-r5 .panel-row:hover {
+  background: var(--sel-soft);
+}
+
+/* --- Mobile / responsive ------------------------------------------------ */
+@media (max-width: 720px) {
+  .welcome-masthead {
+    padding: 12px 14px 10px;
+  }
+  .wm-word {
+    font-size: 19px;
+  }
+  .wm-greet {
+    font-size: 15px;
+  }
+  .welcome-scroll {
+    padding: 12px 14px 20px;
+  }
+  .welcome-tiles {
+    gap: 10px;
+  }
+  .launch-tile {
+    width: calc(33.333% - 7px);
+    min-width: 84px;
+  }
+  .welcome-panels {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .launch-tile {
+    width: calc(50% - 5px);
+  }
+}

@@ -57,6 +57,58 @@
   --fs-xs: 10px;
 }
 
+/* ==========================================================================
+   THEME — Classic R4/R5 (teal + grey)
+   The default look above (:root / .theme-notes8) is the Notes 8 / XP era and is
+   left untouched. The .theme-r5 class — set on both <html> and .notes-window —
+   remaps the custom properties so most components recolor automatically; a few
+   hard-coded gradients are overridden further down and in chrome.css.
+   ========================================================================== */
+.theme-r5,
+:root.theme-r5 {
+  /* Surfaces stay a warm classic grey, very slightly cooler. */
+  --face: #c9cac4;
+  --face-light: #d8dad2;
+  --face-lighter: #e7e8e1;
+  --window: #d6dbd2; /* content background goes pale greenish-grey */
+  --memo-yellow: #f7f4d6;
+
+  /* Bevels */
+  --hl: #fbfcf8;
+  --hl-soft: #eef0e9;
+  --shadow: #7e827b;
+  --shadow-dark: #3a3e38;
+
+  /* Brand / accents — XP blue becomes the classic Notes teal/green. */
+  --notes-blue: #0e4d4d; /* active title bar base */
+  --notes-blue-2: #2e7d6e;
+  --notes-blue-grad-a: #0e5050;
+  --notes-blue-grad-b: #2a8f7a;
+  --inactive-title: #7da39a;
+  --teal: #1f7a6a;
+  --teal-dark: #114a44;
+  --action-green: #cdded0; /* action bar gradient bottom */
+  --action-green-2: #e6efe6;
+
+  /* Selection shifts from blue to teal/green. */
+  --sel: #1e7d6b;
+  --sel-soft: #cbe3da;
+  --sel-text: #ffffff;
+
+  /* Links pick up the era's green-blue. */
+  --link: #006a5a;
+  --unread: #b81414;
+
+  /* Lines */
+  --grid: #b9beae;
+  --grid-soft: #d2d6c8;
+}
+
+/* The desk behind the window: XP slate-teal in Notes 8, deeper classic teal in R5. */
+:root.theme-r5 body {
+  background: #0f4f49;
+}
+
 * {
   box-sizing: border-box;
 }

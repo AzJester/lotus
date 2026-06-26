@@ -22,6 +22,10 @@ export interface OpenTab {
   view: ViewId;
 }
 
+/** Visual theme: the default Notes 8 (XP-era blue) chrome, or the classic
+ *  R4/R5 teal/grey look. */
+export type Theme = "notes8" | "r5";
+
 export interface ViewMeta {
   id: ViewId;
   title: string;
@@ -69,6 +73,8 @@ export interface PendingCopy {
 interface UIState {
   tabs: OpenTab[];
   active: ViewId;
+  /** The active visual theme (persisted). */
+  theme: Theme;
   /** Transient message shown in the status bar. */
   status: string;
   /** A pending "new memo" request, consumed by the Mail module on open. */
@@ -88,6 +94,10 @@ interface UIState {
   closeTab: (view: ViewId) => void;
   setActive: (view: ViewId) => void;
   setStatus: (status: string) => void;
+  /** Set the visual theme directly. */
+  setTheme: (theme: Theme) => void;
+  /** Cycle between the Notes 8 and classic R5 themes. */
+  toggleTheme: () => void;
   /** Open Mail and start a new memo addressed to `to`. */
   requestMemo: (to: string, subject?: string) => void;
   clearMemo: () => void;
@@ -112,6 +122,7 @@ export const useUI = create<UIState>()(
     (set) => ({
       tabs: [{ view: "welcome" }, { view: "workspace" }],
       active: "welcome",
+      theme: "notes8",
       status: "Done",
       pendingMemo: null,
       pendingCalendar: null,
@@ -147,6 +158,20 @@ export const useUI = create<UIState>()(
 
       setActive: (view) => set({ active: view }),
       setStatus: (status) => set({ status }),
+
+      setTheme: (theme) =>
+        set({
+          theme,
+          status: theme === "r5" ? "Theme: Classic (R5)" : "Theme: Notes 8",
+        }),
+      toggleTheme: () =>
+        set((s) => {
+          const theme: Theme = s.theme === "notes8" ? "r5" : "notes8";
+          return {
+            theme,
+            status: theme === "r5" ? "Theme: Classic (R5)" : "Theme: Notes 8",
+          };
+        }),
 
       requestMemo: (to, subject = "") =>
         set((s) => {
@@ -208,8 +233,8 @@ export const useUI = create<UIState>()(
     {
       name: "lotus-notes-ui",
       version: 1,
-      // Persist only the desktop layout, not transient status / compose requests.
-      partialize: (s) => ({ tabs: s.tabs, active: s.active }),
+      // Persist only the desktop layout + theme, not transient status / compose requests.
+      partialize: (s) => ({ tabs: s.tabs, active: s.active, theme: s.theme }),
     },
   ),
 );
