@@ -1,0 +1,123 @@
+/* ==========================================================================
+   Lotus Notes Help: the Contents / Index / Search views and help topics.
+   Topics read like the classic online help: a navy band with the category,
+   a large serif title, and short paragraphs, tables and bulleted steps.
+   ========================================================================== */
+
+.help-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.help-stack > .list-pane {
+  flex: 0 0 45%;
+  border-right: none;
+  border-bottom: 1px solid var(--shadow);
+}
+.help-preview {
+  flex: 1;
+}
+.help-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.doc-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--paper);
+  user-select: text;
+}
+
+.help-doc {
+  max-width: 760px;
+  padding: 0 28px 32px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.help-preview .help-doc {
+  overflow: auto;
+  padding-top: 12px;
+}
+.help-doc.compact {
+  font-size: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  max-width: none;
+}
+.help-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -28px 14px;
+  padding: 5px 28px;
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: bold;
+  background: linear-gradient(180deg, #1f4f9f, #0f336f);
+  border-bottom: 2px solid #f0c030;
+}
+.theme-r5 .help-band {
+  background: #000080;
+  border-bottom-color: #c0c0c0;
+}
+.help-doc h1 {
+  margin: 4px 0 12px;
+  font-family: var(--font-doc);
+  font-size: 22px;
+  font-weight: bold;
+  color: #0f336f;
+}
+.help-doc.compact h1 {
+  font-size: 18px;
+  margin-top: 0;
+}
+.help-body h2 {
+  margin: 18px 0 6px;
+  font-size: 14px;
+  color: #1f4f9f;
+  border-bottom: 1px solid var(--grid-soft);
+  padding-bottom: 2px;
+}
+.help-body p {
+  margin: 0 0 9px;
+}
+.help-body ul {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+.help-body li {
+  margin-bottom: 3px;
+}
+.help-table {
+  border-collapse: collapse;
+  margin: 4px 0 12px;
+  font-size: 12px;
+}
+.help-table th,
+.help-table td {
+  border: 1px solid var(--grid);
+  padding: 3px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.help-table th {
+  background: var(--face-light);
+}
+.help-link {
+  color: var(--link);
+  font-weight: bold;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.doc-missing {
+  padding: 32px;
+  color: var(--ink-muted);
+  font-style: italic;
+}

@@ -1,98 +1,219 @@
 /* ==========================================================================
-   Discussion module — threaded team discussion database.
-   Only adds the few classes unique to this view (thread indentation, the
-   in-row twistie, and the document reader head). Everything else reuses the
-   shared layout classes from views.css.
+   Discussion: the threaded views with the preview pane, the discussion
+   header of a post in read mode (subject, byline, category, the document it
+   answers), and the Main Topic / Response forms in edit mode. The shared
+   pieces (.nview, .doc-form, .form-band, .field-table, .nf-field, .rt-*)
+   are styled in views.css and shell.css.
    ========================================================================== */
 
-.disc-list .view-head .col,
-.disc-list .view-row .col {
-  border-right: none;
-}
-
-/* The Topic column lays its pieces out in a row so indentation, the twistie
-   and the subject line up on the row baseline. */
-.disc-list .view-row .col:first-child,
-.disc-list .view-head .col:first-child {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-/* Per-depth indentation spacer; width is set inline from the node depth. */
-.disc-indent {
-  flex: 0 0 auto;
-  display: inline-block;
-  height: 1px;
-}
-
-/* The collapse/expand control sitting before each subject. */
-.disc-twistie {
-  flex: 0 0 14px;
-  width: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--ink-muted);
-}
-.disc-twistie.disc-leaf {
-  cursor: default;
-  color: var(--ink-muted);
-  font-weight: bold;
-}
-.view-row.selected .disc-twistie,
-.view-row.selected .disc-twistie .nav-twistie {
-  color: #fff;
-}
-
-.disc-subject {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --- Reading pane ------------------------------------------------------- */
-.disc-reader {
-  overflow-y: auto;
-}
-.disc-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
-  border-bottom: 1px solid var(--shadow);
-}
-.disc-headlines {
+/* --- View and preview ---------------------------------------------------------- */
+.disc-stack {
   flex: 1;
   min-width: 0;
-}
-.disc-subject-title {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-.disc-line {
-  font-size: var(--fs);
-  line-height: 1.6;
-}
-.disc-roottag {
-  font-size: var(--fs-sm);
-}
-.disc-head-actions {
-  flex: 0 0 auto;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
 }
-.disc-body {
-  font-family: var(--font-doc);
+.disc-stack.preview-bottom {
+  flex-direction: column;
+}
+.disc-stack.preview-bottom > .list-pane {
+  flex: 0 0 50%;
+}
+.disc-stack.preview-right > .list-pane {
+  flex: 0 0 52%;
+}
+.disc-stack.preview-off > .list-pane {
+  flex: 1;
+}
+.disc-stack > .preview-pane {
+  flex: 1;
 }
 
-/* --- Compose ----------------------------------------------------------- */
-.disc-compose-mode {
+/* The Topic column: subject, then the response count on main topics. */
+.disc-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.disc-topic-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disc-count {
+  flex: 0 0 auto;
+  font-weight: normal;
   font-size: var(--fs-sm);
+  color: #26579f;
+}
+.nview-row.marked .disc-count {
+  color: inherit;
+}
+.theme-r5 .disc-count {
+  color: #000080;
+}
+.disc-topic.flat .px-icon {
+  flex: 0 0 auto;
+}
+
+/* --- A post in read mode ---------------------------------------------------------- */
+.disc-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--paper);
+}
+.disc-read {
+  user-select: text;
+}
+/* Notes 8: a big subject over a one-line byline, on a pale blue sheet. */
+.disc-head {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #c9d6e8;
+  background: linear-gradient(180deg, #ffffff, #f2f6fc);
+}
+.disc-subject {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 17px;
   font-weight: bold;
-  margin-right: 8px;
+  color: #10284f;
+}
+.disc-byline {
+  color: var(--ink-soft);
+}
+.disc-byline b {
+  color: var(--ink);
+}
+.disc-meta {
+  margin-top: 3px;
+  color: var(--ink-soft);
+}
+.disc-meta-label {
+  color: #26579f;
+}
+.disc-link {
+  color: var(--link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.disc-link:hover {
+  color: #c00000;
+}
+.disc-conflict {
+  margin-top: 4px;
+  color: #a00000;
+  font-weight: bold;
+}
+.disc-body {
+  padding: 12px 16px 24px;
+}
+/* The preview pane is a little tighter. */
+.disc-read.compact .disc-head {
+  padding: 8px 12px;
+}
+.disc-read.compact .disc-subject {
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+.disc-read.compact .disc-body {
+  padding: 10px 12px 16px;
+  font-size: 13px;
+}
+/* In a document window the form band sits above the header. */
+.disc-form .disc-head {
+  background: transparent;
+  padding-top: 10px;
+}
+
+/* Classic R5: the subject set in the document font, a double rule below. */
+.theme-r5 .disc-head {
+  background: #fff;
+  border-bottom: 3px double #808080;
+  font-family: Arial, var(--font-ui);
+  font-size: 12px;
+}
+.theme-r5 .disc-subject {
+  font-family: var(--font-doc);
+  font-size: 20px;
+  color: #000080;
+}
+.theme-r5 .disc-read.compact .disc-subject {
+  font-size: 16px;
+}
+.theme-r5 .disc-meta-label {
+  color: #000;
+  font-weight: bold;
+}
+.theme-r5 .disc-link {
+  color: #0000ff;
+}
+
+/* --- Edit mode ---------------------------------------------------------------- */
+/* The document a response answers, above the fields. */
+.disc-parent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 14px 0;
+  padding: 6px 10px;
+  background: #f4f8ff;
+  border: 1px solid #c9d6e8;
+  border-left: 3px solid #4d7cc4;
+}
+.disc-parent-label {
+  font-weight: bold;
+  color: #26579f;
+}
+.disc-parent-by {
+  color: var(--ink-muted);
+}
+.theme-r5 .disc-parent {
+  background: #fff;
+  border: 1px solid #808080;
+  border-left: 3px solid #000080;
+}
+.theme-r5 .disc-parent-label {
+  color: #000080;
+}
+.disc-editor-wrap {
+  margin: 4px 14px 0;
+}
+.disc-editor {
+  border: 1px solid #a9b8cf;
+}
+.disc-editor .rt-body {
+  min-height: 280px;
+}
+/* R5 marks the rich text field with the red corner brackets of every field. */
+.theme-r5 .disc-editor {
+  position: relative;
+  border: none;
+  padding: 0 7px;
+}
+.theme-r5 .disc-editor::before,
+.theme-r5 .disc-editor::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border: 1px solid #c00000;
+  pointer-events: none;
+}
+.theme-r5 .disc-editor::before {
+  left: 0;
+  border-right: none;
+}
+.theme-r5 .disc-editor::after {
+  right: 0;
+  border-left: none;
+}
+.theme-r5 .disc-editor .rt-toolbar {
+  background: #c0c0c0;
+  border-color: #808080;
 }

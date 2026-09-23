@@ -1,467 +1,556 @@
 /* ==========================================================================
-   Mail module
+   Mail: the Inbox view, memo windows (read and compose), meeting notices,
+   delivery reports, and the mail dialogs (Address, Delivery Options, Close
+   Window, Move to Folder, Rules, Propose New Time).
    ========================================================================== */
 
-/* Notes 8 stacks the reading pane BELOW the message list (not beside it). */
+/* --- Navigator ---------------------------------------------------------------- */
+.mail-nav .nav-folders-head {
+  margin-top: 4px;
+  border-top: 1px solid var(--grid-soft);
+  padding-top: 5px;
+}
+.mail-nav .nav-folders-head .nav-label {
+  font-weight: bold;
+}
+
+/* --- View and preview --------------------------------------------------------- */
 .mail-stack {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-width: 0;
   min-height: 0;
-}
-.mail-stack .list-pane {
-  flex: 1 1 52%;
-  border-right: none;
-  border-bottom: 1px solid var(--shadow-dark);
-  min-height: 120px;
-}
-.mail-stack .preview-pane {
-  flex: 1 1 48%;
-  min-height: 120px;
-}
-
-.mail-list .view-head .col,
-.mail-list .view-row .col {
-  border-right: none;
-}
-
-/* Sortable + resizable column headers */
-.mail-list .view-head .col.sortable {
-  cursor: pointer;
-  position: relative;
-}
-.mail-list .view-head .col.sortable:hover {
-  background: rgba(255, 255, 255, 0.45);
-}
-.mail-list .view-head .col .col-resize {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  width: 7px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 2;
-}
-
-/* Date category (group) rows */
-.mail-list .view-group {
   display: flex;
+}
+.mail-stack.preview-bottom {
+  flex-direction: column;
+}
+.mail-stack.preview-bottom > .list-pane {
+  flex: 0 0 52%;
+}
+.mail-stack.preview-right > .list-pane {
+  flex: 0 0 55%;
+}
+.mail-stack.preview-off > .list-pane {
+  flex: 1;
+}
+.mail-subject {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 19px;
-  padding: 0 6px;
-  background: linear-gradient(180deg, #eef1f6, #dfe4ee);
-  border-bottom: 1px solid var(--grid);
-  border-top: 1px solid #fff;
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  position: sticky;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.mail-list .view-group:hover {
-  background: #e2e8f4;
-}
-.mail-list .view-group-label {
-  font-weight: bold;
-  color: var(--ink-soft);
-}
-.mail-list .view-group-count {
-  color: var(--ink-muted);
+.memo-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--paper);
 }
 
-/* Reader: Show Details */
-.memo-date {
-  color: var(--ink-muted);
-  margin-left: 10px;
-}
-.memo-details-toggle {
-  margin-left: 10px;
-  color: var(--link);
-  text-decoration: underline;
-  cursor: pointer;
-}
-.memo-details {
-  margin-top: 5px;
-  padding: 6px 8px;
-  background: #f6f6ef;
-  border: 1px solid var(--grid);
-}
-
-/* Folder counts shown inline as "Inbox (19)" with a bold folder name */
-.mail-app .nav-label.has-count {
-  font-weight: bold;
-}
-.mail-app .mail-nav-title {
+/* --- Memo in read mode ---------------------------------------------------------- */
+.memo-read {
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
-}
-.mail-app .nav-sub-label {
-  font-weight: normal;
-  font-size: var(--fs-xs);
-  color: var(--ink-muted);
-}
-.mail-app .nav-indent {
-  padding-left: 26px;
-}
-
-/* Colored message rows by follow-up flag color (Notes 8 behavior).
-   Hover and selection still take precedence (declared last). */
-.mail-list .view-row.row-yellow {
-  background: #fbf3c4;
-}
-.mail-list .view-row.row-green {
-  background: #d8efce;
-}
-.mail-list .view-row.row-red {
-  background: #fad9d4;
-}
-.mail-list .view-row.row-blue {
-  background: #d6e6fb;
-}
-.mail-list .view-row.row-orange {
-  background: #fde4c6;
-}
-.mail-list .view-row.row-purple {
-  background: #e8d9f3;
-}
-.mail-list .view-row:hover {
-  background: #e8f0fb;
-}
-.mail-list .view-row.selected {
-  background: var(--sel);
-  color: #fff;
-}
-
-/* Read / unread marker column */
-.mail-list .unread-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #2f6fd0;
-  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.25);
-}
-.mail-list .read-ring {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1px solid #9a9a9a;
-}
-
-/* Colored follow-up flag glyph */
-.mail-list .flagmark {
-  font-size: 12px;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-}
-.mail-list .flagmark.yellow { color: #e3b007; }
-.mail-list .flagmark.green { color: #3a9d3a; }
-.mail-list .flagmark.red { color: #d33f3f; }
-.mail-list .flagmark.blue { color: #2f6fd0; }
-.mail-list .flagmark.orange { color: #e07b1a; }
-.mail-list .flagmark.purple { color: #8a4fbf; }
-.mail-list .view-row.selected .flagmark,
-.mail-list .view-row.selected .read-ring {
-  color: #fff;
-  border-color: #fff;
-}
-
-/* Reading pane */
-.memo-reader {
-  overflow-y: auto;
+  min-height: 100%;
+  user-select: text;
 }
 .memo-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
-  border-bottom: 1px solid var(--shadow);
+  flex: 0 0 auto;
 }
-.memo-avatar {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-weight: bold;
-  font-size: 15px;
-  color: #fff;
-  background: linear-gradient(135deg, #4a7fc0, #2f5fa5);
-  box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.3);
+/* Notes 8: big subject, one-line sender, Show Details. */
+.memo-head.n8 {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #c9d6e8;
+  background: linear-gradient(180deg, #ffffff, #f2f6fc);
 }
-.memo-headlines {
-  flex: 1;
-  min-width: 0;
-}
-.memo-subject {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-.memo-line {
-  font-size: var(--fs);
-  line-height: 1.5;
-}
-
-/* Compose */
-.compose-pane {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--white);
-}
-.compose-actions {
+.mh-subject-big {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
-  background: var(--face);
-  border-bottom: 1px solid var(--shadow);
-}
-.btn.primary {
+  font-size: 17px;
   font-weight: bold;
-  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+  color: #10284f;
+  margin-bottom: 6px;
 }
-.compose-prio {
+.mh-mood-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  padding: 1px 6px;
   font-size: var(--fs-sm);
+  font-weight: normal;
+  color: #7a1010;
+  background: #fff4d6;
+  border: 1px solid #e0c070;
+  border-radius: 2px;
+}
+.mh-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mh-date-inline {
+  margin-left: auto;
+  color: var(--ink-muted);
+}
+.mh-details {
+  color: var(--link);
+  font-size: var(--fs-sm);
+}
+.mh-details-box {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #c9d6e8;
+  line-height: 1.55;
+  font-size: var(--fs-sm);
+}
+/* Classic R5: sender and date on the left, To / cc / Subject on the right. */
+.memo-head.r5 {
+  display: flex;
+  gap: 20px;
+  padding: 10px 14px 12px;
+  border-bottom: 3px double #808080;
+  background: #fff;
+  font-family: Arial, var(--font-ui);
+  font-size: 12px;
+}
+.mh-left {
+  flex: 0 0 210px;
+}
+.mh-from {
+  font-weight: bold;
+  font-size: 13px;
+  color: #000080;
+}
+.mh-date {
+  color: #000;
+  margin-top: 2px;
+}
+.mh-importance {
+  margin-top: 4px;
+  color: #c00000;
+  font-weight: bold;
+}
+.mh-right {
+  flex: 1;
+  min-width: 0;
+}
+.mh-row {
+  display: flex;
+  gap: 8px;
+  padding: 1px 0;
+}
+.mh-label {
+  flex: 0 0 60px;
+  text-align: right;
+  color: #000;
+}
+.mh-val {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.mh-subject {
+  font-weight: bold;
+}
+.mh-mood {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #a00000;
+  font-weight: bold;
+  font-size: 11px;
+}
+.memo-body {
+  flex: 1;
+  padding: 12px 16px 24px;
+}
+.memo-read.compact .memo-head.n8 {
+  padding: 8px 12px;
+}
+.memo-read.compact .mh-subject-big {
+  font-size: 14px;
+}
+.memo-read.compact .memo-body {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+/* --- Notices: meeting notices, delivery failures, return receipts ------------- */
+.notice-panel {
+  margin: 10px 14px 0;
+  padding: 8px 12px 10px;
+  background: #f4f8ff;
+  border: 1px solid #9fb6da;
+  border-left: 4px solid #3a6ea5;
+}
+.notice-panel.notice-declined,
+.notice-panel.notice-cancelled,
+.notice-panel.notice-failure {
+  background: #fff5f3;
+  border-color: #e0a8a0;
+  border-left-color: #c03020;
+}
+.notice-panel.notice-accepted,
+.notice-panel.notice-receipt {
+  background: #f3fbf1;
+  border-color: #a8d0a0;
+  border-left-color: #3a9a2a;
+}
+.notice-panel.notice-counter,
+.notice-panel.notice-tentative,
+.notice-panel.notice-rescheduled {
+  background: #fffbea;
+  border-color: #e3cf86;
+  border-left-color: #c79a10;
+}
+.theme-r5 .notice-panel {
+  background: #ffffe1;
+  border: 1px solid #000;
+  border-left-width: 1px;
+}
+.notice-head {
   display: flex;
   align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
-.compose-fields {
-  padding: 6px 10px;
-  background: #fcfbf3;
-  border-bottom: 1px solid var(--shadow);
+.notice-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+}
+.notice-grid > span:nth-child(odd) {
+  color: var(--ink-muted);
+  text-align: right;
+}
+.notice-status {
+  margin-top: 8px;
+  font-weight: bold;
+  color: #2a6a1a;
+}
+.notice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* --- Attachments ------------------------------------------------------------------ */
+.memo-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 0;
+}
+.attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--face-lighter);
+  border: 1px solid var(--shadow);
+}
+a.attach-chip:hover {
+  background: var(--sel-soft);
+}
+.attach-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attach-size {
+  color: var(--ink-muted);
+  font-size: var(--fs-sm);
+}
+.attach-x {
+  margin-left: 2px;
+  padding: 0 2px;
+  font-size: 10px;
+}
+.attach-x:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* --- Memo in edit mode (the Memo form) ------------------------------------------ */
+.memo-window {
+  background: var(--paper);
+}
+.memo-compose {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+.memo-form-head {
+  flex: 0 0 auto;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--grid);
+}
+.memo-form-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: var(--font-doc);
+  font-size: 20px;
+  font-weight: bold;
+  color: #10284f;
+}
+.theme-r5 .memo-form-title {
+  color: #000080;
+}
+.mh-mood-inline {
+  font-family: var(--font-ui);
 }
 .cf-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 0;
+  padding: 2px 0;
 }
-.cf-row label {
-  flex: 0 0 60px;
+.cf-label {
+  flex: 0 0 62px;
   text-align: right;
-  font-weight: bold;
-  color: var(--ink-soft);
+  color: #26579f;
+}
+.theme-r5 .cf-label {
+  color: #000;
+}
+.cf-row .nf-field {
+  flex: 1;
+  min-width: 0;
+}
+.cf-input {
+  width: 100%;
+  height: 21px;
+}
+.memo-delivery-line {
+  display: flex;
+  gap: 14px;
+  min-height: 16px;
+  padding-left: 70px;
   font-size: var(--fs-sm);
+  color: #a00000;
 }
-.cf-row input {
-  flex: 1;
-}
-.compose-body {
-  flex: 1;
-  margin: 8px 10px 10px;
-  overflow-y: auto;
-  outline: none;
-}
-div.compose-body[contenteditable]:empty::before {
-  content: attr(data-placeholder);
-  color: var(--ink-muted);
-  font-style: italic;
-}
-
-/* Formatting + attach toolbar */
-.compose-format {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 4px 10px;
-  background: var(--face);
-  border-bottom: 1px solid var(--shadow);
-}
-.fmt-btn {
-  min-width: 24px;
-  height: 22px;
-  padding: 0 7px;
-  font-size: var(--fs);
-  background: var(--face);
-  border: 1px solid transparent;
-}
-.fmt-btn:hover {
-  border-top: 1px solid var(--hl);
-  border-left: 1px solid var(--hl);
-  border-right: 1px solid var(--shadow-dark);
-  border-bottom: 1px solid var(--shadow-dark);
-}
-.fmt-btn:active {
-  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
-}
-.fmt-sep {
-  width: 0;
-  height: 16px;
-  border-left: 1px solid var(--shadow);
-  border-right: 1px solid var(--hl);
-  margin: 0 3px;
-}
-
-/* Attachment chips (compose + reader) */
-.compose-attachments,
-.memo-attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px 10px;
-  background: #fbfaf2;
-  border-bottom: 1px solid var(--grid);
-}
-.memo-attachments {
-  border-bottom: none;
-  border-top: 1px solid var(--grid);
-}
-.attach-chip {
+.memo-delivery-line span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 7px;
-  background: #fff;
+  gap: 3px;
+}
+.memo-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- Outgoing Mail ------------------------------------------------------------- */
+.outbox-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fffbe3;
+  border-bottom: 1px solid #e3cf86;
+}
+
+/* --- Dialogs ------------------------------------------------------------------- */
+.closewin {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 2px;
+}
+.closewin-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.delivery,
+.propose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.delivery-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.delivery-row > span:first-child,
+.delivery-row > label:first-child {
+  min-width: 110px;
+}
+.delivery-mood {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+.delivery-note {
+  color: var(--ink-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+.addr-dlg {
+  display: flex;
+  gap: 10px;
+  min-height: 300px;
+}
+.addr-left {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.addr-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.addr-row select,
+.addr-row input {
+  flex: 1;
+  min-width: 0;
+}
+.addr-list {
+  flex: 1;
+  min-height: 180px;
+  overflow-y: auto;
+  background: var(--paper);
   border: 1px solid var(--shadow);
-  border-radius: 3px;
-  font-size: var(--fs-sm);
-  text-decoration: none;
-  color: var(--ink);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  outline: none;
 }
-a.attach-chip:hover {
-  background: #eef3fb;
+.addr-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
-.attach-name {
-  font-weight: bold;
-}
-.attach-size {
-  color: var(--ink-muted);
-  font-size: var(--fs-xs);
-}
-.attach-x {
-  cursor: pointer;
-  color: var(--ink-muted);
-  padding: 0 2px;
-}
-.attach-x:hover {
-  color: var(--unread);
-}
-
-/* Quoted text in replies/forwards */
-.memo-quote {
-  border-left: 3px solid #c9c4b8;
-  padding-left: 8px;
-  color: #444;
-}
-
-/* ==========================================================================
-   Custom folders (navigator) + filing
-   ========================================================================== */
-.mail-app .nav-folders-head {
-  font-weight: bold;
-}
-.mail-app .nav-folders-head .nav-folder-add {
-  margin-left: auto;
-  padding: 0 4px;
-  font-weight: bold;
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-.mail-app .nav-folders-head .nav-folder-add:hover {
-  color: var(--link);
-}
-.mail-app .nav-folders-empty .nav-label {
-  font-style: italic;
-}
-
-/* A custom folder row reveals its rename/remove affordances on hover. */
-.mail-app .nav-folder .nav-folder-act {
-  flex: 0 0 auto;
-  width: 14px;
-  text-align: center;
-  color: var(--ink-muted);
-  cursor: pointer;
-  visibility: hidden;
-  font-size: var(--fs-sm);
-}
-.mail-app .nav-folder:hover .nav-folder-act {
-  visibility: visible;
-}
-.mail-app .nav-folder .nav-folder-act:hover {
-  color: var(--unread);
-}
-.mail-app .nav-folder.active .nav-folder-act {
+.addr-item.active {
+  background: var(--sel);
   color: #fff;
 }
-
-/* Drag-and-drop filing target highlight. */
-.mail-app .nav-item.drop-target {
-  background: var(--sel-soft);
-  outline: 1px dashed var(--sel);
-  outline-offset: -2px;
+.addr-name {
+  flex: 0 0 auto;
 }
-
-/* Draggable message rows show the move cursor while dragging. */
-.mail-list .view-row[draggable="true"] {
-  cursor: default;
+.addr-detail {
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* "Move To Folder" dropdown extras (reuses .open-menu / .open-row). */
-.open-row.open-row-empty {
+.addr-item.active .addr-detail {
+  color: #dfe7f7;
+}
+.addr-empty {
+  padding: 10px;
   color: var(--ink-muted);
   font-style: italic;
 }
-.open-row.open-row-sep {
-  border-top: 1px solid var(--shadow);
+.addr-buttons {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
 }
-
-/* ==========================================================================
-   Rules dialog
-   ========================================================================== */
-.rules-list {
-  max-height: 220px;
+.addr-buttons .btn {
+  min-width: 80px;
+}
+.addr-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.addr-recips {
+  flex: 1;
   overflow-y: auto;
+  background: var(--paper);
   border: 1px solid var(--shadow);
-  background: var(--white);
-  margin-bottom: 12px;
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  padding: 2px 0;
+}
+.addr-recip-head {
+  padding: 3px 6px 1px;
+  font-weight: bold;
+  color: #26579f;
+}
+.addr-recip {
+  padding: 1px 6px 1px 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.addr-recip:hover {
+  background: var(--sel-soft);
+}
+.movefolder-new {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+.rules-list {
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  margin-bottom: 10px;
 }
 .rules-empty {
   padding: 12px;
   color: var(--ink-muted);
   font-style: italic;
-  text-align: center;
 }
 .rule-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-bottom: 1px solid var(--grid-soft);
-  font-size: var(--fs-sm);
-}
-.rule-row:last-child {
-  border-bottom: none;
 }
 .rule-text {
   flex: 1;
-  min-width: 0;
 }
 .rule-del {
-  flex: 0 0 auto;
-  padding: 0 7px;
+  min-height: 19px;
+  padding: 0 6px;
 }
 .rule-form {
+  border: 1px solid var(--shadow);
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--shadow);
+  gap: 6px;
 }
 .rule-form-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--fs-sm);
   flex-wrap: wrap;
 }
 .rule-form-row input[type="text"] {
   flex: 1;
   min-width: 120px;
+}
+.rules-status {
+  margin-top: 6px;
+  color: var(--ink-muted);
+  min-height: 14px;
 }

@@ -1,0 +1,92 @@
+/* ==========================================================================
+   Acme's Directory (Domino Directory, read-only): People, People by
+   Organization and Groups views with a Person / Group document preview.
+   ========================================================================== */
+
+.dir-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dir-stack > .list-pane {
+  flex: 0 0 50%;
+  border-right: none;
+  border-bottom: 1px solid var(--shadow);
+}
+.dir-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.nav-note {
+  margin: 10px 8px;
+  padding: 6px;
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+  border-top: 1px solid var(--grid);
+}
+
+.presence-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 8px;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+.presence-dot.online {
+  background: #2e9e2e;
+}
+.presence-dot.away {
+  background: #e0b000;
+}
+.presence-dot.offline {
+  background: #a0a0a0;
+}
+
+.dir-doc {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 18px;
+  background: var(--paper);
+  user-select: text;
+}
+.dir-doc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #3b6f5f;
+}
+.dir-doc-title {
+  font-size: 18px;
+  font-weight: bold;
+  font-family: var(--font-doc);
+}
+.dir-doc-sub {
+  color: var(--ink-muted);
+}
+.dir-doc-head .presence-dot {
+  margin-left: auto;
+  width: 12px;
+  height: 12px;
+}
+.dir-fields {
+  border-collapse: collapse;
+}
+.dir-fields th {
+  text-align: right;
+  vertical-align: top;
+  padding: 3px 10px 3px 0;
+  font-weight: normal;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.dir-fields td {
+  padding: 3px 0;
+}
+.dir-ooo {
+  color: #a03000;
+}

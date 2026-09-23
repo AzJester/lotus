@@ -1,0 +1,752 @@
+/* ==========================================================================
+   Planner: the R4.5/R5 ring-bound day planner (see Planner.tsx)
+   Two facing paper pages lie open on a leather binder cover with metal rings
+   down the gutter. Each page is faintly ruled in blue with a red margin line;
+   days are sections separated by darker rules. Optional month index tabs
+   stick out of the right page. Everything is scoped under .planner, and the
+   theme only changes the leather and the "printed" ink colors.
+   ========================================================================== */
+
+.planner {
+  /* paper */
+  --pl-paper: #fffdf4;
+  --pl-paper-2: #f6f1df; /* the sheets underneath */
+  --pl-paper-3: #ece5cf;
+  --pl-sheet-line: rgba(96, 78, 40, 0.26);
+  --pl-rule: rgba(88, 136, 200, 0.3); /* faint blue ruling */
+  --pl-rule-head: rgba(50, 88, 146, 0.42); /* under each day header */
+  --pl-rule-day: rgba(34, 60, 104, 0.72); /* between days */
+  --pl-margin-red: rgba(212, 56, 56, 0.72);
+  --pl-highlight: rgba(255, 232, 20, 0.62); /* today's highlighter stroke */
+  --pl-today-ink: #b3261e;
+  /* "printed" ink and leather follow the theme (Notes 8 defaults here) */
+  --pl-print: #213f6d;
+  --pl-print-weekend: #8a2f2f;
+  --pl-cover: #2a3a55;
+  --pl-cover-edge: #111a2b;
+  /* geometry */
+  --pl-line: 18px; /* ruled line pitch = one entry line */
+  --pl-head: 21px;
+  --pl-margin: 28px; /* red margin line, from the page's left edge */
+  --pl-indent: 35px; /* text starts just right of the margin line */
+  --pl-pad-r: 12px;
+  --pl-gutter: 34px;
+  --pl-ring-reach: 17px; /* how far each ring reaches into a page */
+  --pl-time-w: 9.8em; /* fits "12:00 PM - 12:30 PM" */
+
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  container: planner / inline-size;
+  font-family: var(--font-ui);
+  font-size: var(--fs);
+  color: var(--ink);
+}
+
+:root.theme-r5 .planner,
+.theme-r5 .planner {
+  --pl-print: #1d4a43;
+  --pl-cover: #23433a; /* green leather, after the classic Notes teal */
+  --pl-cover-edge: #0d1f1a;
+}
+
+/* --- the binder cover ---------------------------------------------------- */
+.planner-book {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  padding: 12px 16px 16px;
+  background-color: var(--pl-cover);
+  background-image:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 65%),
+    radial-gradient(rgba(255, 255, 255, 0.05) 0.8px, transparent 1.4px),
+    radial-gradient(rgba(0, 0, 0, 0.16) 0.8px, transparent 1.4px);
+  background-size:
+    100% 100%,
+    4px 4px,
+    5px 5px;
+  background-position:
+    0 0,
+    0 0,
+    2px 3px;
+  box-shadow:
+    inset 0 0 0 1px var(--pl-cover-edge),
+    inset 0 1px 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 0 28px rgba(0, 0, 0, 0.5);
+}
+/* Stitching around the edge of the leather. */
+.planner-book::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 5px;
+  border: 1px dashed rgba(255, 238, 214, 0.26);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.planner-with-tabs .planner-book {
+  padding-right: 52px;
+}
+
+/* --- pages --------------------------------------------------------------- */
+.planner-page {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  position: relative;
+  container: planner-page / inline-size;
+}
+.planner-sheet {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 10px;
+  background-color: var(--pl-paper);
+}
+/* The red margin line (a border, so it stays crisp at any page offset). */
+.planner-sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--pl-margin) - 1px);
+  border-left: 1px solid var(--pl-margin-red);
+  pointer-events: none;
+}
+/* Left page: a shadow where the paper curves into the binding (right), a
+   slightly darker outer edge, and the stack of pages beneath. */
+.planner-page-left .planner-sheet {
+  border-radius: 3px 0 0 3px;
+  --pl-pad-r: 24px; /* keep clear of the punched holes */
+  background-image:
+    linear-gradient(
+      270deg,
+      rgba(86, 64, 24, 0.26),
+      rgba(86, 64, 24, 0.09) 9px,
+      rgba(86, 64, 24, 0) 38px
+    ),
+    linear-gradient(90deg, rgba(86, 64, 24, 0.12), rgba(86, 64, 24, 0) 7px);
+  box-shadow:
+    -1px 1px 0 var(--pl-sheet-line),
+    -2px 2px 0 var(--pl-paper-2),
+    -3px 3px 0 var(--pl-sheet-line),
+    -4px 4px 0 var(--pl-paper-3),
+    -5px 5px 0 rgba(70, 54, 24, 0.45),
+    -6px 9px 14px rgba(0, 0, 0, 0.5);
+}
+/* Right page: the mirror image. */
+.planner-page-right .planner-sheet {
+  border-radius: 0 3px 3px 0;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(86, 64, 24, 0.26),
+      rgba(86, 64, 24, 0.09) 9px,
+      rgba(86, 64, 24, 0) 38px
+    ),
+    linear-gradient(270deg, rgba(86, 64, 24, 0.12), rgba(86, 64, 24, 0) 7px);
+  box-shadow:
+    1px 1px 0 var(--pl-sheet-line),
+    2px 2px 0 var(--pl-paper-2),
+    3px 3px 0 var(--pl-sheet-line),
+    4px 4px 0 var(--pl-paper-3),
+    5px 5px 0 rgba(70, 54, 24, 0.45),
+    6px 9px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* The little printed caption across the top of each page. */
+.planner-caption {
+  flex: none;
+  height: 24px;
+  padding: 8px var(--pl-pad-r) 0 var(--pl-indent);
+  font-size: var(--fs-xs);
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--pl-print);
+  opacity: 0.75;
+}
+.planner-page-right .planner-caption {
+  text-align: right;
+}
+
+/* --- day sections ---------------------------------------------------------- */
+.planner-slot {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--pl-rule-day);
+}
+.planner-slot:last-child {
+  border-bottom: 2px solid var(--pl-rule-day);
+}
+.planner-slot-blank {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 calc(var(--pl-line) - 1px),
+    var(--pl-rule) calc(var(--pl-line) - 1px) var(--pl-line)
+  );
+}
+.planner-day {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Saturday and Sunday sharing a slot are split by a thinner rule. */
+.planner-day + .planner-day {
+  border-top: 1px solid var(--pl-rule-day);
+}
+.planner-day-head {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: var(--pl-head);
+  margin: 0;
+  padding: 0 var(--pl-pad-r) 3px var(--pl-indent);
+  font-size: var(--fs);
+  font-weight: bold;
+  line-height: 1.2;
+  color: var(--pl-print);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--pl-rule-head);
+  background: linear-gradient(180deg, rgba(60, 96, 150, 0.035), rgba(60, 96, 150, 0.075));
+}
+.planner-day-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.planner-day.weekend .planner-day-head {
+  color: var(--pl-print-weekend);
+}
+/* Today: a stroke of yellow highlighter across the date. */
+.planner-day.today .planner-day-name {
+  margin-left: -4px;
+  padding: 0 4px;
+  color: var(--ink);
+  background: linear-gradient(
+    176deg,
+    transparent 14%,
+    var(--pl-highlight) 16%,
+    var(--pl-highlight) 90%,
+    transparent 92%
+  );
+  border-radius: 3px 6px 4px 7px;
+}
+.planner-day-today {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pl-today-ink);
+}
+/* "3 more" / "2 above": entries scrolled out of sight; clicking pages to them. */
+.planner-more {
+  flex: none;
+  margin-left: auto;
+  padding: 0 6px 0 5px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: bold;
+  line-height: 13px;
+  color: var(--pl-print);
+  background: rgba(40, 70, 120, 0.08);
+  border: 1px solid rgba(40, 70, 120, 0.35);
+  border-radius: 7px;
+  cursor: default;
+}
+.planner-more::before {
+  content: "\25be\00a0";
+}
+.planner-more-up::before {
+  content: "\25b4\00a0";
+}
+.planner-more:hover {
+  background: rgba(40, 70, 120, 0.16);
+}
+.planner-more:focus-visible {
+  outline: 1px dotted var(--ink);
+  outline-offset: 1px;
+}
+.planner-more + .planner-more,
+.planner-more + .planner-day-today {
+  margin-left: 0;
+}
+.planner-day-body {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 calc(var(--pl-line) - 1px),
+    var(--pl-rule) calc(var(--pl-line) - 1px) var(--pl-line)
+  );
+  background-attachment: local;
+  /* Paper has no scrollbars: the wheel, touch and the header's "more" and
+     "above" buttons scroll a crowded day. */
+  scrollbar-width: none;
+}
+.planner-day-body::-webkit-scrollbar {
+  display: none;
+}
+/* Lines running out of sight fade away like ink at the edge of the box. */
+.planner-day-body.more-below {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), rgba(0, 0, 0, 0.15));
+  mask-image: linear-gradient(180deg, #000 calc(100% - 14px), rgba(0, 0, 0, 0.15));
+}
+.planner-day-body.more-above {
+  -webkit-mask-image: linear-gradient(0deg, #000 calc(100% - 14px), rgba(0, 0, 0, 0.15));
+  mask-image: linear-gradient(0deg, #000 calc(100% - 14px), rgba(0, 0, 0, 0.15));
+}
+.planner-day-body.more-above.more-below {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15),
+    #000 14px,
+    #000 calc(100% - 14px),
+    rgba(0, 0, 0, 0.15)
+  );
+  mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15),
+    #000 14px,
+    #000 calc(100% - 14px),
+    rgba(0, 0, 0, 0.15)
+  );
+}
+
+/* --- entry lines, written on the rules -------------------------------------- */
+.planner-entry {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--pl-line);
+  padding: 0 var(--pl-pad-r) 1px var(--pl-indent);
+  line-height: calc(var(--pl-line) - 1px);
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--ink);
+  outline: none;
+  cursor: default;
+  /* highlight band starts right of the margin line and leaves the rule showing */
+  background-repeat: no-repeat;
+  background-size: 100% calc(100% - 1px);
+}
+.planner-entry:hover {
+  background-image: linear-gradient(
+    90deg,
+    transparent calc(var(--pl-margin) + 1px),
+    rgba(40, 70, 120, 0.07) 0
+  );
+}
+.planner-entry.selected {
+  background-image: linear-gradient(
+    90deg,
+    transparent calc(var(--pl-margin) + 1px),
+    var(--sel-soft) 0
+  );
+}
+.planner-entry:focus-visible {
+  outline: 1px dotted var(--ink);
+  outline-offset: -2px;
+}
+.planner-mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  background: var(--mark);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.45);
+}
+.planner-time {
+  flex: none;
+  min-width: var(--pl-time-w);
+  font-variant-numeric: tabular-nums;
+}
+.planner-entry.all-day .planner-time {
+  font-style: italic;
+  color: var(--ink-muted);
+}
+.planner-recur {
+  flex: none;
+  color: var(--pl-print);
+}
+/* Subject and location share one line of text, so the location is what the
+   ellipsis eats first. */
+.planner-subject {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.planner-loc {
+  color: var(--ink-muted);
+}
+
+/* --- binding: leather spine and rings ------------------------------------- */
+/* The rings reach over the page edges, so clicks pass straight through them. */
+.planner-binding {
+  flex: 0 0 var(--pl-gutter);
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 22px 0;
+  /* the pages' shadows falling into the gutter, and the fold of the spine */
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.5),
+    rgba(0, 0, 0, 0.14) 22%,
+    rgba(0, 0, 0, 0) 38%,
+    rgba(0, 0, 0, 0.22) 48.5%,
+    rgba(255, 255, 255, 0.07) 51.5%,
+    rgba(0, 0, 0, 0) 62%,
+    rgba(0, 0, 0, 0.14) 78%,
+    rgba(0, 0, 0, 0.5)
+  );
+}
+.planner-ring {
+  position: relative;
+  height: 14px;
+  margin: 0 calc(var(--pl-ring-reach) * -1);
+}
+/* The punched holes, one in each page. */
+.planner-ring::before,
+.planner-ring::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #0b0a08 0 40%, #29231d 70%, #4f463b 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.95);
+}
+.planner-ring::before {
+  left: 2px;
+}
+.planner-ring::after {
+  right: 2px;
+}
+/* The ring itself: a polished steel loop seen from above. It is brightest
+   where it arches over the spine, darkens where it dips into each hole, and
+   casts a shadow onto the paper. */
+.planner-ring-bar {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 8px;
+  right: 8px;
+  height: 10px;
+  border-radius: 5px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 10, 10, 0.72),
+      rgba(10, 10, 10, 0.18) 16%,
+      rgba(10, 10, 10, 0) 34%,
+      rgba(10, 10, 10, 0) 66%,
+      rgba(10, 10, 10, 0.18) 84%,
+      rgba(10, 10, 10, 0.72)
+    ),
+    linear-gradient(
+      180deg,
+      #3f4246 0%,
+      #9ea3a8 14%,
+      #f2f4f6 30%,
+      #ffffff 38%,
+      #c9cdd1 55%,
+      #8c9197 74%,
+      #55595e 90%,
+      #34373a 100%
+    );
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.55),
+    1px 3px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* --- month index tabs --------------------------------------------------------- */
+.planner-tabs {
+  position: absolute;
+  z-index: -1;
+  top: 26px;
+  bottom: 12px;
+  left: 100%;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.planner-tab {
+  flex: 0 1 34px;
+  min-height: 12px;
+  width: 40px;
+  margin-left: -10px;
+  padding: 0 0 0 12px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: bold;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.62);
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.08)
+    ),
+    var(--tab);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px 0 0 rgba(0, 0, 0, 0.1),
+    1px 1px 2px rgba(0, 0, 0, 0.4);
+  filter: brightness(0.9) saturate(0.85);
+  cursor: default;
+  overflow: hidden;
+}
+.planner-tab:hover {
+  filter: none;
+}
+.planner-tab:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -3px;
+}
+/* The current month's tab is pulled out further and not dimmed. */
+.planner-tab.current {
+  width: 48px;
+  margin-left: -6px;
+  padding-left: 8px;
+  color: #000;
+  filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    2px 2px 4px rgba(0, 0, 0, 0.55);
+}
+
+/* --- formats ------------------------------------------------------------------- */
+/* Two Days: a full page per day, with a larger printed date. */
+.planner-days-2 {
+  --pl-head: 32px;
+  --pl-line: 20px;
+}
+.planner-days-2 .planner-day-head {
+  font-size: 15px;
+  padding-bottom: 4px;
+}
+/* Two Weeks: seven rows a page, so everything is a little tighter. */
+.planner-days-14 {
+  --pl-head: 18px;
+  --pl-line: 17px;
+}
+.planner-days-14 .planner-day-head {
+  font-size: var(--fs-sm);
+  padding-bottom: 2px;
+}
+.planner-days-14 .planner-caption {
+  height: 20px;
+  padding-top: 6px;
+}
+
+/* --- narrow pages ------------------------------------------------------------------ */
+/* Drop end times and the location when a page gets narrow. */
+@container planner-page (max-width: 300px) {
+  .planner-sheet {
+    --pl-time-w: 4.9em;
+  }
+  .planner-time-end,
+  .planner-loc {
+    display: none;
+  }
+  .planner-day-today {
+    display: none;
+  }
+}
+
+/* --- phones: the pages stack, bound along a horizontal gutter ------------------ */
+/* Each page takes the full width and every day grows to hold all of its
+   entries; the binder scrolls instead of the days. */
+@container planner (max-width: 560px) {
+  .planner-book {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 12px 14px 16px;
+    background-attachment: local;
+  }
+  .planner-book::before {
+    display: none;
+  }
+  .planner-with-tabs .planner-book {
+    padding-right: 14px;
+    padding-bottom: 46px;
+  }
+  /* Grow to fill a short binder, never shrink below the entries. */
+  .planner-page,
+  .planner-slot,
+  .planner-day,
+  .planner-day-body {
+    flex: 1 0 auto;
+  }
+  .planner-day-body {
+    min-height: calc(var(--pl-line) * 3);
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .planner-days-2 .planner-day-body {
+    min-height: calc(var(--pl-line) * 8);
+  }
+  .planner-more {
+    display: none;
+  }
+  /* Keep the text clear of the punched holes along the gutter edges. */
+  .planner-page-left .planner-sheet {
+    --pl-pad-r: 12px;
+    padding-bottom: 22px;
+    border-radius: 3px 3px 0 0;
+    background-image: linear-gradient(
+      0deg,
+      rgba(86, 64, 24, 0.26),
+      rgba(86, 64, 24, 0.09) 9px,
+      rgba(86, 64, 24, 0) 34px
+    );
+    box-shadow:
+      -1px -1px 0 var(--pl-sheet-line),
+      -2px -2px 0 var(--pl-paper-2),
+      -3px -3px 0 var(--pl-sheet-line),
+      -4px -4px 0 var(--pl-paper-3),
+      -5px -5px 0 rgba(70, 54, 24, 0.45),
+      -4px -2px 12px rgba(0, 0, 0, 0.45);
+  }
+  .planner-page-right .planner-sheet {
+    padding-top: 16px;
+    border-radius: 0 0 3px 3px;
+    background-image: linear-gradient(
+      180deg,
+      rgba(86, 64, 24, 0.26),
+      rgba(86, 64, 24, 0.09) 9px,
+      rgba(86, 64, 24, 0) 34px
+    );
+    box-shadow:
+      1px 1px 0 var(--pl-sheet-line),
+      2px 2px 0 var(--pl-paper-2),
+      3px 3px 0 var(--pl-sheet-line),
+      4px 4px 0 var(--pl-paper-3),
+      5px 5px 0 rgba(70, 54, 24, 0.45),
+      4px 8px 12px rgba(0, 0, 0, 0.45);
+  }
+  /* The gutter turns sideways: rings stand vertically across it. */
+  .planner-binding {
+    flex: 0 0 var(--pl-gutter);
+    flex-direction: row;
+    padding: 0 22px;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.5),
+      rgba(0, 0, 0, 0.14) 22%,
+      rgba(0, 0, 0, 0) 38%,
+      rgba(0, 0, 0, 0.22) 48.5%,
+      rgba(255, 255, 255, 0.07) 51.5%,
+      rgba(0, 0, 0, 0) 62%,
+      rgba(0, 0, 0, 0.14) 78%,
+      rgba(0, 0, 0, 0.5)
+    );
+  }
+  .planner-ring {
+    width: 14px;
+    height: auto;
+    margin: calc(var(--pl-ring-reach) * -1) 0;
+  }
+  .planner-ring::before,
+  .planner-ring::after {
+    top: auto;
+    right: auto;
+    left: 1px;
+  }
+  .planner-ring::before {
+    top: 2px;
+  }
+  .planner-ring::after {
+    bottom: 2px;
+  }
+  .planner-ring-bar {
+    top: 8px;
+    bottom: 8px;
+    left: 2px;
+    right: auto;
+    width: 10px;
+    height: auto;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(10, 10, 10, 0.72),
+        rgba(10, 10, 10, 0.18) 16%,
+        rgba(10, 10, 10, 0) 34%,
+        rgba(10, 10, 10, 0) 66%,
+        rgba(10, 10, 10, 0.18) 84%,
+        rgba(10, 10, 10, 0.72)
+      ),
+      linear-gradient(
+        90deg,
+        #3f4246 0%,
+        #9ea3a8 14%,
+        #f2f4f6 30%,
+        #ffffff 38%,
+        #c9cdd1 55%,
+        #8c9197 74%,
+        #55595e 90%,
+        #34373a 100%
+      );
+  }
+  /* Month tabs hang from the bottom edge of the lower page. */
+  .planner-tabs {
+    top: 100%;
+    bottom: auto;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 40px;
+    flex-direction: row;
+  }
+  .planner-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    width: auto;
+    height: 30px;
+    margin: -8px 0 0;
+    padding: 8px 0 0;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+  }
+  .planner-tab.current {
+    width: auto;
+    height: 36px;
+    margin: -6px 0 0;
+    padding: 6px 0 0;
+  }
+}

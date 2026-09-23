@@ -1,166 +1,244 @@
 /* ==========================================================================
-   Workspace — colored tabbed pages of database tiles on teal felt.
+   The Workspace: colored page tabs over a page of database icons. The
+   textured option draws the gray marbled surface of the R4/R5 Workspace.
    ========================================================================== */
 
 .workspace {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #b8b4ab;
 }
 
-/* Tabs across the top of the workspace */
+/* --- Page tabs ----------------------------------------------------------- */
 .ws-tabs {
   display: flex;
   align-items: flex-end;
-  height: 26px;
-  padding: 4px 0 0 6px;
-  background: var(--teal-dark);
+  gap: 1px;
+  height: 27px;
+  padding: 4px 6px 0;
+  background: var(--face);
+  border-bottom: 3px solid var(--page, #888);
   flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.ws-tabs::-webkit-scrollbar {
+  height: 0;
 }
 .ws-tab {
-  --tab-color: #888;
-  height: 22px;
-  padding: 0 16px;
-  margin-right: 3px;
-  font-size: var(--fs);
+  --tab: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 14px;
+  font-size: var(--fs-sm);
   font-weight: bold;
-  color: #f4f2ea;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--tab-color) 75%, #000), var(--tab-color));
-  border-top: 1px solid color-mix(in srgb, var(--tab-color) 50%, #fff);
-  border-left: 1px solid color-mix(in srgb, var(--tab-color) 50%, #fff);
-  border-right: 1px solid #000;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
+  color: #fff;
+  white-space: nowrap;
+  background: var(--tab);
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  border-left: 1px solid rgba(255, 255, 255, 0.6);
+  border-right: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 5px 5px 0 0;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.35);
+  filter: saturate(0.75) brightness(0.93);
+  position: relative;
+  flex: 0 0 auto;
 }
 .ws-tab.active {
-  height: 24px;
-  color: #fff;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--tab-color) 55%, #fff), var(--tab-color));
+  height: 23px;
+  filter: none;
+  z-index: 1;
+}
+.ws-tab.drop {
+  outline: 2px dashed #000;
+  outline-offset: -3px;
+}
+.ws-tab-add {
+  --tab: #a7a39a;
+  padding: 0 8px;
 }
 .ws-tabs-fill {
   flex: 1;
+  min-width: 12px;
+}
+.ws-tab-replicator {
+  color: #fff;
 }
 
-/* Felt area */
-.ws-felt {
+/* --- The page ------------------------------------------------------------ */
+.ws-page {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 18px;
-  background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 4px),
-    radial-gradient(circle at 30% 20%, #2a8585, #1f7a7a 40%, #145555 100%);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+  outline: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 128px);
+  grid-auto-rows: 58px;
+  gap: 10px 4px;
+  align-content: start;
+  padding: 16px 18px;
+  background: #cfcbc2;
+  box-shadow: inset 0 4px 0 var(--page);
 }
-.ws-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  align-content: flex-start;
+.workspace.textured .ws-page {
+  background-color: #b9b5ad;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.4px),
+    radial-gradient(rgba(0, 0, 0, 0.12) 1px, transparent 1.4px), linear-gradient(135deg, #c6c2b9, #a9a59c);
+  background-size: 7px 7px, 11px 11px, 100% 100%;
+  background-position: 0 0, 3px 4px, 0 0;
+}
+.ws-r5 .ws-page {
+  background: #c0c0c0;
+}
+.ws-r5.textured .ws-page {
+  background-color: #b4b4b4;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1.3px),
+    radial-gradient(rgba(0, 0, 0, 0.16) 1px, transparent 1.3px), linear-gradient(135deg, #c8c8c8, #a8a8a8);
+}
+.ws-empty {
+  grid-column: 1 / -1;
+  padding: 20px;
+  color: #3a3a3a;
+  font-style: italic;
 }
 
-/* Database tile (classic raised Notes DB icon) */
-.db-tile {
+/* --- Database icons ("chiclets"): icon at left, title at right ---------- */
+.ws-icon {
   display: flex;
-  gap: 8px;
-  width: 230px;
-  padding: 8px;
-  background: linear-gradient(180deg, #e9e6df, #d2cec5);
-  border-top: 1px solid var(--hl);
-  border-left: 1px solid var(--hl);
-  border-right: 2px solid #2a2a2a;
-  border-bottom: 2px solid #2a2a2a;
-  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.35);
-}
-.db-tile.selected {
-  outline: 2px dotted #fff;
-  outline-offset: -1px;
-  background: linear-gradient(180deg, #f4f2ec, #ddd9cf);
-}
-.db-icon {
+  align-items: flex-start;
+  gap: 5px;
+  height: 56px;
+  padding: 4px 5px 4px 4px;
+  background: linear-gradient(180deg, #f7f6f2, #e3e0d8);
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #5d5a52;
+  border-bottom: 1px solid #5d5a52;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
   position: relative;
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
-  border-radius: 4px;
+  overflow: hidden;
+}
+.ws-r5 .ws-icon {
+  background: #c0c0c0;
+  border-color: #fff #000 #000 #fff;
+  box-shadow: inset -1px -1px 0 #808080;
+}
+.ws-icon.selected {
+  outline: 2px solid #000;
+  outline-offset: -1px;
+}
+.ws-icon.selected .ws-title {
+  background: var(--sel);
+  color: #fff;
+}
+.ws-icon.drop {
+  box-shadow: -3px 0 0 #000;
+}
+.ws-art {
+  position: relative;
+  flex: 0 0 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  font-size: 26px;
-  color: #fff;
-  box-shadow: inset -2px -3px 5px rgba(0, 0, 0, 0.35), inset 2px 2px 4px rgba(255, 255, 255, 0.4),
-    1px 1px 2px rgba(0, 0, 0, 0.3);
+  margin-top: 2px;
 }
-.db-glyph {
-  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.4));
+.ws-art > .px-icon {
+  position: relative;
+  z-index: 1;
 }
-.db-unread {
+.ws-stack-shadow {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background: var(--unread);
-  color: #fff;
+  left: 4px;
+  top: 4px;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  border: 1px solid #5d5a52;
+  box-shadow: 2px 2px 0 #fff, 3px 3px 0 #5d5a52;
+}
+.ws-stack-arrow {
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  z-index: 2;
+  width: 12px;
+  height: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  line-height: 1;
+  background: var(--face);
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+.ws-unread {
+  position: absolute;
+  left: -3px;
+  bottom: -5px;
+  z-index: 2;
+  padding: 0 3px;
   font-size: 10px;
   font-weight: bold;
-  display: grid;
-  place-items: center;
-  border: 1px solid #fff;
+  color: var(--unread);
+  background: #fff;
+  border: 1px solid var(--unread);
 }
-.db-meta {
-  flex: 1;
-  min-width: 0;
+.ws-text {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding-top: 2px;
 }
-.db-title {
-  font-weight: bold;
-  font-size: var(--fs);
+.ws-title {
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+  color: #000;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+.ws-server {
+  font-size: 10px;
+  color: #3a3a8a;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.db-server {
-  font-size: var(--fs-sm);
-  color: var(--ink-muted);
-}
-.db-count {
-  margin-top: 3px;
-  font-size: var(--fs-sm);
-  color: #2a6a2a;
 }
 
-.ws-hint {
-  flex: 0 0 auto;
-  padding: 4px 12px;
-  font-size: var(--fs-sm);
-  color: #1f4f3f;
-  background: var(--window);
-  border-top: 1px solid var(--shadow);
+/* --- Page properties dialog ------------------------------------------------ */
+.ws-colors-label {
+  margin: 10px 0 4px;
+}
+.ws-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ws-swatch {
+  width: 24px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #000;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+.ws-swatch.active {
+  outline: 2px solid #000;
+  outline-offset: 2px;
 }
 
-/* --- Mobile / responsive ------------------------------------------------ */
 @media (max-width: 720px) {
-  .ws-tabs {
-    overflow-x: auto;
-    overflow-y: hidden;
-  }
-  .ws-tab {
-    flex: 0 0 auto;
-  }
-  .ws-felt {
-    padding: 12px;
-  }
-  .ws-grid {
-    gap: 12px;
-  }
-  .db-tile {
-    width: 100%;
-    max-width: 360px;
+  .ws-page {
+    grid-template-columns: repeat(auto-fill, 118px);
+    padding: 10px;
   }
 }

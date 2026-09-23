@@ -1,5 +1,5 @@
 // ============================================================================
-// Lotus Notes — IndexedDB-backed persistence
+// Lotus Notes: IndexedDB-backed persistence
 // A zustand-compatible async storage (the StateStorage shape: string in/out,
 // Promises allowed). Documents now live in IndexedDB ("lotus-notes" / store
 // "kv") instead of localStorage so the workspace survives larger datasets.

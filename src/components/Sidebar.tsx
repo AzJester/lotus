@@ -1,48 +1,59 @@
 // ============================================================================
-// The Notes 8 right-hand sidebar: a collapsible rail of mini-applications.
-// Day-At-A-Glance (today's calendar), Sametime Contacts (a buddy list), and
-// Feeds. Reads the shared store so the panels are live. A thin icon rail on the
-// far right toggles the panel area open and closed, as in the real client.
+// The Notes 8 sidebar: collapsible panels for Sametime Contacts (your
+// colleagues from the Domino Directory, with presence), Activities,
+// Day-At-A-Glance (today's calendar, entries open on click), Feeds, Lotus
+// Quickr and SideKick. The icon rail on the right collapses the panels or,
+// when collapsed, opens the one you click.
 // ============================================================================
 
 import { useState } from "react";
+import type { ReactNode } from "react";
+import { Icon } from "./Icon";
+import type { IconName } from "./Icon";
 import { useNotes } from "../data/store";
 import { useUI } from "../data/ui";
+import { DIRECTORY_PEOPLE } from "../data/directory";
+import { expandEntry } from "../data/calendarUtil";
 import { fmtTime, initials, sameDay } from "../lib/format";
+import { presenceOf } from "../lib/presence";
 import "../styles/sidebar.css";
-
-// Deterministic pseudo-presence so the buddy list feels alive without state.
-function presence(id: string): "online" | "away" | "offline" {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  const r = h % 3;
-  return r === 0 ? "online" : r === 1 ? "away" : "offline";
-}
 
 const FEEDS = [
   { src: "developerWorks", title: "Best practices for Domino replication" },
   { src: "Lotus Blog", title: "What's new in the 8.5 client sidebar" },
   { src: "Planet Lotus", title: "Composite applications: a primer" },
-  { src: "IBM News", title: "Notes & Domino roadmap update" },
+  { src: "IBM News", title: "Notes and Domino roadmap update" },
+];
+
+type PanelId = "contacts" | "activities" | "day" | "feeds" | "quickr" | "sidekick";
+
+const PANELS: { id: PanelId; title: string; icon: IconName }[] = [
+  { id: "contacts", title: "Sametime Contacts", icon: "chat" },
+  { id: "activities", title: "Activities", icon: "activities" },
+  { id: "day", title: "Day-At-A-Glance", icon: "day-glance" },
+  { id: "feeds", title: "Feeds", icon: "feeds" },
+  { id: "quickr", title: "Lotus Quickr", icon: "quickr" },
+  { id: "sidekick", title: "SideKick", icon: "sidekick" },
 ];
 
 function Panel({
   title,
   icon,
+  open,
+  onToggle,
   children,
-  defaultOpen = true,
 }: {
   title: string;
-  icon: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+  icon: IconName;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   return (
     <section className={"sb-panel" + (open ? "" : " collapsed")}>
-      <header className="sb-panel-head" onClick={() => setOpen((o) => !o)}>
-        <span className="sb-twist">{open ? "▼" : "▶"}</span>
-        <span className="sb-panel-icon">{icon}</span>
+      <header className="sb-panel-head" onClick={onToggle}>
+        <Icon name={open ? "twistie-down" : "twistie-right"} />
+        <Icon name={icon} />
         <span className="sb-panel-title">{title}</span>
       </header>
       {open && <div className="sb-panel-body">{children}</div>}
@@ -52,112 +63,127 @@ function Panel({
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
-  const { calendar, contacts } = useNotes();
-  const openView = useUI((s) => s.openView);
+  const [panels, setPanels] = useState<Record<PanelId, boolean>>({
+    contacts: true,
+    activities: false,
+    day: true,
+    feeds: false,
+    quickr: false,
+    sidekick: false,
+  });
+  const calendar = useNotes((s) => s.calendar);
+  const me = useNotes((s) => s.user.name);
+  const openDocument = useUI((s) => s.openDocument);
   const openChat = useUI((s) => s.openChat);
   const setStatus = useUI((s) => s.setStatus);
 
   const now = Date.now();
   const today = calendar
-    .filter((e) => sameDay(e.start, now))
-    .sort((a, b) => a.start - b.start);
+    .flatMap((e) => expandEntry(e).map((occ) => ({ occ, masterId: e.id })))
+    .filter(({ occ }) => sameDay(occ.start, now))
+    .sort((a, b) => a.occ.start - b.occ.start);
 
-  const buddies = contacts
-    .map((c) => ({ c, status: presence(c.id) }))
-    .sort((a, b) => {
-      const rank = { online: 0, away: 1, offline: 2 } as const;
-      return rank[a.status] - rank[b.status];
-    });
-  const onlineCount = buddies.filter((b) => b.status === "online").length;
+  const rank = { online: 0, away: 1, offline: 2 } as const;
+  const buddies = DIRECTORY_PEOPLE.filter((p) => p.name !== me && !p.title.startsWith("Mail-in") && !p.email.startsWith("admin@"))
+    .map((p) => ({ p, status: presenceOf(p.name) }))
+    .sort((a, b) => rank[a.status] - rank[b.status] || a.p.name.localeCompare(b.p.name));
+  const onlineCount = buddies.filter((b) => b.status !== "offline").length;
+
+  const toggle = (id: PanelId) => setPanels((p) => ({ ...p, [id]: !p[id] }));
+
+  const body: Record<PanelId, ReactNode> = {
+    contacts: (
+      <>
+        <div className="sb-group">Work ({onlineCount}/{buddies.length})</div>
+        {buddies.map(({ p, status }) => (
+          <div
+            key={p.name}
+            className={"sb-buddy " + status}
+            title={`${p.name}, ${p.title}. ${status === "offline" ? "Offline" : "Double-click to chat"}`}
+            onDoubleClick={() => openChat(p.name)}
+          >
+            <span className={"sb-presence " + status} />
+            <span className="sb-avatar">{initials(p.name)}</span>
+            <span className="sb-text">{p.name}</span>
+            {p.ooo && <span className="sb-note">Out of office</span>}
+          </div>
+        ))}
+      </>
+    ),
+    activities: <div className="sb-empty">No activities. Create one to get started.</div>,
+    day:
+      today.length === 0 ? (
+        <div className="sb-empty">No entries today.</div>
+      ) : (
+        today.map(({ occ, masterId }) => (
+          <div
+            key={occ.id}
+            className="sb-row"
+            title="Open this calendar entry"
+            onClick={() => openDocument({ coll: "calendar", id: masterId }, { title: occ.subject })}
+          >
+            <span className="sb-time">{occ.allDay ? "All day" : fmtTime(occ.start)}</span>
+            <span className="sb-text">{occ.subject}</span>
+          </div>
+        ))
+      ),
+    feeds: FEEDS.map((f) => (
+      <div key={f.title} className="sb-feed" onClick={() => setStatus(`Feed: ${f.title}`)}>
+        <Icon name="feeds" />
+        <span className="sb-feed-body">
+          <span className="sb-text">{f.title}</span>
+          <span className="sb-feed-src">{f.src}</span>
+        </span>
+      </div>
+    )),
+    quickr: <div className="sb-empty">No Quickr places connected.</div>,
+    sidekick: (
+      <div className="sb-sidekick">
+        <div className="sb-text" style={{ fontWeight: "bold" }}>
+          Get Directions...
+        </div>
+        <div className="sb-text muted">Acme headquarters</div>
+        <div className="sb-text muted">100 Main Street</div>
+        <div className="sb-map" aria-hidden />
+      </div>
+    ),
+  };
 
   return (
     <div className={"sidebar" + (open ? "" : " closed")}>
       {open && (
         <div className="sb-body">
-          <Panel title={`Sametime Contacts (${onlineCount})`} icon="💬">
-            {buddies.map(({ c, status }) => (
-              <div
-                key={c.id}
-                className="sb-buddy"
-                title={`Chat with ${c.firstName} ${c.lastName}`}
-                onClick={() => openChat(`${c.firstName} ${c.lastName}`)}
-              >
-                <span className={"sb-presence " + status} />
-                <span className="sb-avatar">{initials(`${c.firstName} ${c.lastName}`)}</span>
-                <span className="sb-text">
-                  {c.firstName} {c.lastName}
-                </span>
-              </div>
-            ))}
-            {buddies.length === 0 && <div className="sb-empty">No contacts.</div>}
-          </Panel>
-
-          <Panel title="Activities" icon="📋" defaultOpen={false}>
-            <div className="sb-empty">No activities. Create one to get started.</div>
-          </Panel>
-
-          <Panel title="Day-At-A-Glance" icon="📆">
-            {today.length === 0 ? (
-              <div className="sb-empty">No entries today.</div>
-            ) : (
-              today.map((e) => (
-                <div key={e.id} className="sb-row" onClick={() => openView("calendar")}>
-                  <span className="sb-time">{e.allDay ? "All day" : fmtTime(e.start)}</span>
-                  <span className="sb-text">{e.subject}</span>
-                </div>
-              ))
-            )}
-          </Panel>
-
-          <Panel title="Feeds" icon="📡" defaultOpen={false}>
-            {FEEDS.map((f) => (
-              <div
-                key={f.title}
-                className="sb-feed"
-                onClick={() => setStatus(`Feed: ${f.title}`)}
-              >
-                <span className="sb-feed-dot">📰</span>
-                <span className="sb-feed-body">
-                  <span className="sb-text">{f.title}</span>
-                  <span className="sb-feed-src">{f.src}</span>
-                </span>
-              </div>
-            ))}
-          </Panel>
-
-          <Panel title="Lotus Quickr" icon="🗂️" defaultOpen={false}>
-            <div className="sb-empty">No Quickr places connected.</div>
-          </Panel>
-
-          <Panel title="SideKick!" icon="🗺️" defaultOpen={false}>
-            <div className="sb-sidekick">
-              <div className="sb-text" style={{ fontWeight: "bold" }}>Get Directions…</div>
-              <div className="sb-text muted">4 Yawkey Way</div>
-              <div className="sb-text muted">Boston, MA 02215</div>
-              <div className="sb-map" aria-hidden>
-                <span className="sb-map-pin">📍</span>
-              </div>
-            </div>
-          </Panel>
+          {PANELS.map((p) => (
+            <Panel
+              key={p.id}
+              title={p.id === "contacts" ? `${p.title} (${onlineCount})` : p.title}
+              icon={p.icon}
+              open={panels[p.id]}
+              onToggle={() => toggle(p.id)}
+            >
+              {body[p.id]}
+            </Panel>
+          ))}
         </div>
       )}
-
-      {/* Far-right icon rail — always visible; toggles the panel area. */}
       <div className="sb-rail">
-        <button
-          className="sb-rail-btn toggle"
-          title={open ? "Collapse sidebar" : "Open sidebar"}
-          onClick={() => setOpen((o) => !o)}
-        >
+        <button className="sb-rail-btn toggle" title={open ? "Collapse the sidebar" : "Open the sidebar"} onClick={() => setOpen((o) => !o)}>
           {open ? "▶" : "◀"}
         </button>
         <div className="sb-rail-icons">
-          <span className="sb-rail-btn" title="Sametime Contacts">💬</span>
-          <span className="sb-rail-btn" title="Activities">📋</span>
-          <span className="sb-rail-btn" title="Day-At-A-Glance">📆</span>
-          <span className="sb-rail-btn" title="Feeds">📡</span>
-          <span className="sb-rail-btn" title="Lotus Quickr">🗂️</span>
-          <span className="sb-rail-btn" title="SideKick!">🗺️</span>
+          {PANELS.map((p) => (
+            <button
+              key={p.id}
+              className="sb-rail-btn"
+              title={p.title}
+              onClick={() => {
+                setOpen(true);
+                setPanels((s) => ({ ...s, [p.id]: true }));
+              }}
+            >
+              <Icon name={p.icon} />
+            </button>
+          ))}
         </div>
       </div>
     </div>

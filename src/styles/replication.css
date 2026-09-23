@@ -1,143 +1,149 @@
 /* ==========================================================================
-   Lotus Notes — Replicator dialog
-   Styled to match the classic Notes Replicator page: a server header bar, a
-   beveled list of databases with document counts and a sync-status column, and
-   a footer with the last-replicated time and the Replicate Now action.
+   The Replicator page: one row per replicated database with its check box,
+   server, last run, pending changes and progress, plus the schedule.
    ========================================================================== */
 
-.repl {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: var(--fs);
+.replicator-page {
+  background: var(--paper);
 }
-
-/* --- Server header ------------------------------------------------------- */
-.repl-server {
+.repl-banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: linear-gradient(180deg, var(--face-lighter), var(--face));
-  border: 1px solid var(--shadow);
-  box-shadow: inset 1px 1px 0 var(--hl);
+  gap: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #eef3fa, #dce6f4);
+  border-bottom: 1px solid #a9bcd9;
 }
-.repl-server-ic {
-  font-size: 18px;
-  line-height: 1;
+.theme-r5 .repl-banner {
+  background: #fff;
+  border-bottom: 1px solid #808080;
 }
-.repl-server-meta {
-  flex: 1;
-  min-width: 0;
+.repl-banner-title {
+  font-size: 16px;
+  font-weight: bold;
+  font-family: var(--font-doc);
+  color: #10284f;
 }
-.repl-server-name {
+.theme-r5 .repl-banner-title {
+  color: #000080;
+}
+.repl-banner-sub {
+  margin-top: 2px;
+}
+.repl-warn {
+  color: #b00000;
   font-weight: bold;
 }
-.repl-server-state {
-  color: var(--shadow);
-  font-size: var(--fs-sm);
-}
-.repl-led {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #3a8a3a;
-  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
-}
-.repl-led.busy {
-  background: #d8a514;
-  animation: repl-blink 0.6s steps(2, start) infinite;
-}
-@keyframes repl-blink {
-  to {
-    opacity: 0.35;
-  }
-}
-
-/* --- Database list ------------------------------------------------------- */
-.repl-list {
+.repl-table {
+  margin: 10px 14px;
   border: 1px solid var(--shadow);
-  border-top: 1px solid var(--shadow-dark);
-  background: var(--white);
-  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.12);
+  background: var(--paper);
 }
-.repl-head,
+.repl-thead,
 .repl-row {
   display: grid;
-  grid-template-columns: 1fr 80px 90px;
+  grid-template-columns: 28px minmax(180px, 1.4fr) minmax(110px, 1fr) minmax(130px, 1fr) 70px minmax(190px, 1.6fr);
   align-items: center;
-  padding: 3px 8px;
+  min-height: 24px;
 }
-.repl-head {
-  background: var(--face);
-  border-bottom: 1px solid var(--shadow);
+.repl-thead {
   font-weight: bold;
   font-size: var(--fs-sm);
-  color: var(--ink);
+  background: linear-gradient(180deg, #fbfbfb, #dedcd5);
+  border-bottom: 1px solid #a7a59c;
+}
+.theme-r5 .repl-thead {
+  background: #c0c0c0;
+  font-weight: normal;
+}
+.repl-thead > span,
+.repl-row > span {
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .repl-row {
-  border-bottom: 1px solid #e6e4dd;
+  border-bottom: 1px solid var(--grid-soft);
 }
 .repl-row:last-child {
   border-bottom: none;
 }
-.repl-row:nth-child(even) {
-  background: #f6f5ef;
+.repl-row:hover {
+  background: #f3f7fd;
 }
-.repl-c-db {
-  display: flex;
+.repl-row.running {
+  background: #fffbe3;
+}
+.rc-check {
+  display: grid;
+  place-items: center;
+}
+.rc-db {
+  display: inline-flex !important;
   align-items: center;
   gap: 6px;
 }
-.repl-row-ic {
-  font-size: 13px;
-}
-.repl-c-count {
+.rc-pending {
   text-align: right;
-  padding-right: 14px;
-  font-variant-numeric: tabular-nums;
+  font-weight: bold;
+  color: #8a5a00;
 }
-.repl-c-status {
-  text-align: right;
+.rc-state.muted {
+  color: var(--ink-muted);
 }
-.repl-c-status.synced {
-  color: #2e6b2e;
-}
-.repl-c-status.pending {
-  color: #9a5a00;
+.rc-state.error {
+  color: #b00000;
   font-weight: bold;
 }
-
-/* --- Footer -------------------------------------------------------------- */
-.repl-foot-info {
-  color: var(--shadow);
-  font-size: var(--fs-sm);
+.repl-progress {
+  display: inline-block;
+  width: 150px;
+  height: 12px;
+  vertical-align: middle;
+  background: #fff;
+  border: 1px solid var(--shadow);
+  border-top-color: var(--shadow-dark);
+  border-left-color: var(--shadow-dark);
+  overflow: hidden;
+  position: relative;
 }
-.repl-foot-spacer {
-  flex: 1;
+.repl-progress-fill {
+  position: absolute;
+  inset: 1px auto 1px 1px;
+  width: 30%;
+  background: repeating-linear-gradient(90deg, #000080 0 8px, transparent 8px 10px);
+  animation: repl-run 1.1s linear infinite;
 }
-
-/* The Replicator can open before any view-scoped CSS loads, so define the
-   primary button accent here rather than rely on mail/contacts stylesheets. */
-.modal-foot .btn.primary {
-  font-weight: bold;
-  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+@keyframes repl-run {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
 }
-
-/* --- Status-bar Replicate control --------------------------------------- */
-.repl-status-btn {
+.repl-schedule {
+  margin: 4px 14px 14px;
+  padding: 8px 12px 10px;
+  border: 1px solid var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--hl);
+}
+.repl-schedule legend {
+  padding: 0 4px;
+}
+.repl-schedule label {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 100%;
-  padding: 0 6px;
-  border: none;
-  background: transparent;
-  font-family: var(--font-ui);
-  font-size: var(--fs-sm);
-  color: var(--ink);
-  cursor: default;
+  gap: 2px;
 }
-.repl-status-btn:hover {
-  background: var(--sel-soft);
+.repl-minutes {
+  width: 56px;
+  margin: 0 4px;
+}
+.repl-note {
+  margin-top: 8px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+  max-width: 640px;
 }
