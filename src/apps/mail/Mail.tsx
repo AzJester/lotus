@@ -27,6 +27,7 @@ import {
   Dialog,
 } from "../../components/ui";
 import { fmtListDate, fmtDateTime, initials } from "../../lib/format";
+import { htmlToText, sanitizeHtml, textToHtml } from "../../lib/sanitize";
 import { Splitter } from "../../components/Splitter";
 import "../../styles/mail.css";
 
@@ -84,14 +85,6 @@ function parsePeople(raw: string): Person[] {
 
 const peopleStr = (ppl: Person[]) => ppl.map((p) => p.name || p.email).join(", ");
 
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const textToHtml = (s: string) => escapeHtml(s).replace(/\n/g, "<br>");
-function htmlToText(html: string): string {
-  const d = document.createElement("div");
-  d.innerHTML = html;
-  return d.textContent || "";
-}
 const hasAttach = (m: MailMessage) => !!(m.hasAttachment || (m.attachments && m.attachments.length));
 const fmtBytes = (n: number) =>
   n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -895,7 +888,7 @@ function MemoReader({ msg, isDraft, onEdit }: { msg: MailMessage; isDraft: boole
         </div>
       )}
       {msg.bodyHtml ? (
-        <div className="memo-body" dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
+        <div className="memo-body" dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.bodyHtml) }} />
       ) : (
         <div className="memo-body">{msg.body}</div>
       )}

@@ -185,6 +185,9 @@
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35), inset -1px -1px 0 var(--shadow);
   padding: 2px;
   z-index: 100;
+  /* The open menu title is white-on-blue; don't let that color leak into
+     the dropdown, or every enabled item renders white on gray. */
+  color: var(--ink);
 }
 .menu-row {
   display: flex;

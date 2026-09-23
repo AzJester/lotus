@@ -147,7 +147,7 @@ export default function App() {
       const typing =
         el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
       const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && e.key.toLowerCase() === "n") {
+      if (ctrl && e.key.toLowerCase() === "m") {
         e.preventDefault();
         requestMemo("");
       } else if (ctrl && e.key.toLowerCase() === "f") {
@@ -159,7 +159,7 @@ export default function App() {
       } else if (e.key === "F9") {
         e.preventDefault();
         setStatus("View refreshed.");
-      } else if ((e.key === "Delete" || e.key === "Backspace") && !typing) {
+      } else if (e.key === "Delete" && !typing) {
         e.preventDefault();
         sendCmd("delete");
       }

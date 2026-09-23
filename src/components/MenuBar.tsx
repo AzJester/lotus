@@ -23,6 +23,8 @@ export default function MenuBar() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const openView = useUI((s) => s.openView);
   const setStatus = useUI((s) => s.setStatus);
+  const requestMemo = useUI((s) => s.requestMemo);
+  const openReplication = useUI((s) => s.openReplication);
   const resetAll = useNotes((s) => s.resetAll);
   const exportAll = useNotes((s) => s.exportAll);
   const importAll = useNotes((s) => s.importAll);
@@ -80,7 +82,7 @@ export default function MenuBar() {
 
   const menus: Record<string, Item[]> = {
     File: [
-      { label: "New Database...", accel: "Ctrl+N", disabled: true },
+      { label: "New Database...", disabled: true },
       { label: "Open", onClick: go("workspace") },
       { sep: true },
       { label: "Print...", accel: "Ctrl+P", onClick: () => { setOpen(null); window.print(); } },
@@ -88,7 +90,7 @@ export default function MenuBar() {
       { label: "Export Workspace... (.nsf.json)", onClick: doExport },
       { label: "Import Workspace...", onClick: doImport },
       { sep: true },
-      { label: "Replication", disabled: true },
+      { label: "Replication...", onClick: () => { setOpen(null); openReplication(); } },
       { sep: true },
       {
         label: "Reset demo data...",
@@ -120,7 +122,7 @@ export default function MenuBar() {
       { label: "Refresh", accel: "F9", onClick: () => { setOpen(null); setStatus("Refreshed."); } },
     ],
     Create: [
-      { label: "Mail → Memo", onClick: go("mail") },
+      { label: "Memo", accel: "Ctrl+M", onClick: () => { setOpen(null); requestMemo(""); } },
       { label: "Calendar Entry", onClick: go("calendar") },
       { label: "Contact", onClick: go("contacts") },
       { label: "To Do Item", onClick: go("todo") },

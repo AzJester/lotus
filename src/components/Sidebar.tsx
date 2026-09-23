@@ -9,15 +9,9 @@ import { useState } from "react";
 import { useNotes } from "../data/store";
 import { useUI } from "../data/ui";
 import { fmtTime, initials, sameDay } from "../lib/format";
+import { presenceOf } from "../lib/presence";
 import "../styles/sidebar.css";
 
-// Deterministic pseudo-presence so the buddy list feels alive without state.
-function presence(id: string): "online" | "away" | "offline" {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  const r = h % 3;
-  return r === 0 ? "online" : r === 1 ? "away" : "offline";
-}
 
 const FEEDS = [
   { src: "developerWorks", title: "Best practices for Domino replication" },
@@ -63,7 +57,7 @@ export default function Sidebar() {
     .sort((a, b) => a.start - b.start);
 
   const buddies = contacts
-    .map((c) => ({ c, status: presence(c.id) }))
+    .map((c) => ({ c, status: presenceOf(`${c.firstName} ${c.lastName}`) }))
     .sort((a, b) => {
       const rank = { online: 0, away: 1, offline: 2 } as const;
       return rank[a.status] - rank[b.status];

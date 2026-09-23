@@ -23,6 +23,7 @@ import type {
 } from "./types";
 import { buildSeed } from "./seed";
 import { idbStorage } from "./idb";
+import { sanitizeHtml } from "../lib/sanitize";
 
 export function uid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -521,9 +522,12 @@ export const useNotes = create<NotesState>()(
           // `labels` to a string[] (or leave it absent) so the rest of the app
           // can treat it uniformly.
           const rawMail: MailMessage[] = Array.isArray(d.mail) ? d.mail : [];
-          const mail = rawMail.map((m) =>
-            Array.isArray(m.labels) ? m : { ...m, labels: [] },
-          );
+          const mail = rawMail.map((m) => ({
+            ...m,
+            labels: Array.isArray(m.labels) ? m.labels : [],
+            // Imported files are untrusted: never keep active content.
+            bodyHtml: typeof m.bodyHtml === "string" ? sanitizeHtml(m.bodyHtml) : undefined,
+          }));
           set({
             user: d.user ?? get().user,
             mail,

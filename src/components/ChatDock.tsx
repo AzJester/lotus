@@ -10,18 +10,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "../data/ui";
 import { fmtTime } from "../lib/format";
+import { presenceOf } from "../lib/presence";
 import "../styles/chat.css";
 
-type Presence = "online" | "away" | "offline";
-
-// Deterministic pseudo-presence from the buddy name, so a window's dot matches
-// the buddy list's feel without any shared state.
-function presence(name: string): Presence {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  const r = h % 3;
-  return r === 0 ? "online" : r === 1 ? "away" : "offline";
-}
 
 // Canned auto-replies, picked by how many messages the user has sent so the
 // banter varies a little over the course of a conversation.
@@ -43,7 +34,7 @@ interface ChatLine {
 }
 
 function ChatWindow({ name, onClose }: { name: string; onClose: () => void }) {
-  const status = presence(name);
+  const status = presenceOf(name);
   const [lines, setLines] = useState<ChatLine[]>(() => [
     { who: "system", text: `${name} is ${status === "offline" ? "offline" : "available"}.`, at: Date.now() },
   ]);
