@@ -14,7 +14,7 @@ import type { ActionItem } from "../../components/ActionBar";
 import { DocMissing, FieldTable, FormPage, TextRow, useDocWindow } from "../../components/docform";
 import { notesAsk } from "../../components/dialogs";
 import { Icon } from "../../components/Icon";
-import { RichTextEditor, RichTextView } from "../../components/RichText";
+import { copyDocumentLink, RichTextEditor, RichTextView } from "../../components/RichText";
 import { useTab } from "../../components/tabs";
 import { useNotes } from "../../data/store";
 import { useUI } from "../../data/ui";
@@ -60,11 +60,9 @@ export function newResponse(target: DiscussionPost, toResponse: boolean) {
   useUI.getState().newDocument("discussion", { parentId: parent.id }, { title: "New Response", db: discussionDb(parent.db) });
 }
 
-/** Edit > Copy as Link > Document Link. */
+/** Edit > Copy as Link > Document Link (for the selected post in a view). */
 export function copyPostLink(p: DiscussionPost) {
-  const ui = useUI.getState();
-  ui.setClipboardLink({ coll: "discussion", id: p.id, db: discussionDb(p.db), title: postTitle(p) });
-  ui.setStatus("Document link copied to the clipboard. Paste it into a rich text field.");
+  copyDocumentLink({ coll: "discussion", id: p.id, db: discussionDb(p.db), title: postTitle(p) });
 }
 
 // ---------------------------------------------------------------------------
@@ -183,8 +181,8 @@ export function PostDocument() {
       else updatePost(d.id, postSaveFields(d));
       useUI.getState().setStatus("Document saved.");
     },
+    // Create > Discussion > Response answers this post's thread.
     commands: {
-      copyAsLink: doc ? () => copyPostLink(doc) : undefined,
       newDocument: doc ? () => newResponse(doc, false) : undefined,
     },
   });

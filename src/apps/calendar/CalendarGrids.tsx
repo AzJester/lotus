@@ -77,12 +77,12 @@ function tooltip(e: CalendarEntry): string {
     .join("\n");
 }
 
-/** Small icons in front of a subject: repeats, alarm. */
-function Marks({ e }: { e: CalendarEntry }) {
+/** Small icons in front of a subject: repeats, and (where there is room) the alarm. */
+function Marks({ e, alarm = true }: { e: CalendarEntry; alarm?: boolean }) {
   return (
     <>
       {e.recurrence && <Icon name="recurrence" className="cal-mark" title="Repeats" />}
-      {e.alarm && <Icon name="alarm" className="cal-mark" title="Alarm" />}
+      {alarm && e.alarm && <Icon name="alarm" className="cal-mark" title="Alarm" />}
     </>
   );
 }
@@ -149,7 +149,7 @@ function Chip({
     >
       {!e.allDay && <span className="cal-chip-mark" aria-hidden="true" />}
       {!e.allDay && showTime && <span className="cal-chip-time">{shortTime(e.start)}</span>}
-      <Marks e={e} />
+      <Marks e={e} alarm={false} />
       <span className="cal-chip-subj">{e.subject || "(Untitled)"}</span>
     </div>
   );
@@ -499,9 +499,9 @@ function Block({
         {time}
       </div>
       <div className="cal-block-subj">
-        <Marks e={e} />
-        {e.type === "meeting" && <Icon name="meeting" className="cal-mark" />}
-        {e.type === "reminder" && <Icon name="reminder" className="cal-mark" />}
+        <Marks e={e} alarm={!short} />
+        {!short && e.type === "meeting" && <Icon name="meeting" className="cal-mark" />}
+        {!short && e.type === "reminder" && <Icon name="reminder" className="cal-mark" />}
         <span>{e.subject || "(Untitled)"}</span>
       </div>
       {e.location && <div className="cal-block-loc">{e.location}</div>}

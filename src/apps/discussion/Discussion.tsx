@@ -192,9 +192,10 @@ export default function Discussion() {
 
   const markReadCmd = (read: boolean, scope: "selected" | "all") => {
     const ids = new Set(scope === "all" ? shown.map((p) => p.id) : selection());
-    const list = inDb.filter((p) => ids.has(p.id));
+    // Your own posts are never unread.
+    const list = inDb.filter((p) => ids.has(p.id) && !isAuthor(p, user));
     if (read) markRead(list);
-    else markUnread(list.filter((p) => !isAuthor(p, user)).map((p) => p.id));
+    else markUnread(list.map((p) => p.id));
     setStatus(`${docs(list.length)} marked ${read ? "read" : "unread"}.`);
   };
 

@@ -205,10 +205,13 @@ export function ContextMenuHost() {
   useEffect(() => {
     if (!menu) return;
     const close = () => closeContextMenu();
-    window.addEventListener("mousedown", close);
+    // Attached on the next tick: a menu opened from a mousedown (status bar
+    // pop-ups, the replica arrow) must not be closed by that same event.
+    const t = window.setTimeout(() => window.addEventListener("mousedown", close), 0);
     window.addEventListener("blur", close);
     window.addEventListener("resize", close);
     return () => {
+      window.clearTimeout(t);
       window.removeEventListener("mousedown", close);
       window.removeEventListener("blur", close);
       window.removeEventListener("resize", close);

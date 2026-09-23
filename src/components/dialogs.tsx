@@ -33,6 +33,8 @@ let nextId = 1;
 
 /** Show a dialog; resolves with whatever the dialog passes to `close`. */
 export function openDialog<T>(render: (close: (value: T) => void) => ReactNode): Promise<T> {
+  // Give focus back to whatever had it (a field, a view) when the box closes.
+  const before = typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null;
   return new Promise<T>((resolve) => {
     const id = nextId++;
     const entry: DialogEntry = {
@@ -41,6 +43,11 @@ export function openDialog<T>(render: (close: (value: T) => void) => ReactNode):
       resolve: (v) => {
         useDialogs.setState((s) => ({ stack: s.stack.filter((d) => d.id !== id) }));
         resolve(v as T);
+        setTimeout(() => {
+          if (useDialogs.getState().stack.length) return;
+          const ae = document.activeElement;
+          if (before && before.isConnected && (!ae || ae === document.body)) before.focus({ preventScroll: true });
+        }, 0);
       },
     };
     useDialogs.setState((s) => ({ stack: [...s.stack, entry] }));

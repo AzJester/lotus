@@ -223,17 +223,19 @@
 }
 .pab-card-foot {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: 6px 16px;
   padding: 8px 14px 12px;
   border-top: 1px solid #e2e8f1;
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
 .pab-card-addr {
+  flex: 1 1 130px;
+  min-width: 130px;
   color: var(--ink-soft);
-  min-width: 0;
 }
 .pab-card-reach {
   border-collapse: collapse;
@@ -371,6 +373,9 @@
 }
 .pab-form .nf-field > textarea.pab-street {
   min-height: 38px;
+}
+.pab-form .nf-field > textarea.pab-comments-field {
+  min-width: 440px;
 }
 .pab-form .field-read {
   overflow-wrap: anywhere;
@@ -511,8 +516,7 @@
   .pab-card-extra {
     width: 100%;
   }
-  .pab-card-foot {
-    flex-direction: column;
-    align-items: flex-start;
+  .pab-form .nf-field > textarea.pab-comments-field {
+    min-width: 0;
   }
 }

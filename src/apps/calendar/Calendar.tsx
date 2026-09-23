@@ -611,7 +611,7 @@ function EntryList({
     const date: ViewColumn<CalendarEntry> = {
       id: "date",
       title: "Date",
-      width: 92,
+      width: 84,
       sortable: true,
       sortValue: (e) => e.start,
       text: (e) => fmtDate(e.start),
@@ -620,14 +620,14 @@ function EntryList({
     const time: ViewColumn<CalendarEntry> = {
       id: "time",
       title: "Time",
-      width: 150,
+      width: 128,
       render: (e) => <span className="cal-list-time">{timeRangeText(e)}</span>,
     };
     const subject: ViewColumn<CalendarEntry> = {
       id: "subject",
       title: "Subject",
       flex: true,
-      minWidth: 200,
+      minWidth: 150,
       sortable: true,
       sortValue: (e) => e.subject.toLowerCase(),
       text: (e) => e.subject,
@@ -682,7 +682,7 @@ function EntryList({
       {
         id: "chair",
         title: "Chair",
-        width: 130,
+        width: 116,
         sortable: true,
         sortValue: (e) => (e.chair?.name ?? me.name).toLowerCase(),
         render: (e) => e.chair?.name ?? me.name,
@@ -690,7 +690,7 @@ function EntryList({
       {
         id: "role",
         title: "Role",
-        width: 64,
+        width: 58,
         sortable: true,
         sortValue: (e) => roleText(e, me),
         render: (e) => roleText(e, me),
@@ -698,7 +698,7 @@ function EntryList({
       {
         id: "status",
         title: "Status",
-        width: 230,
+        width: 190,
         render: (e) => (
           <span className="cal-list-status">
             <Icon name={statusIcon(e)} />

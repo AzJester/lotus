@@ -219,7 +219,7 @@ export function ContactDocument() {
                       ))}
                     </datalist>
                   </FieldRow>
-                  <FieldRow label="Comments:" editing={w.editing} read={d.comments} wide>
+                  <FieldRow label="Comments:" editing={w.editing} read={d.comments}>
                     <textarea
                       className="nf-input pab-comments-field"
                       rows={6}

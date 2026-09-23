@@ -11,7 +11,7 @@ import { ActionBar } from "../../components/ActionBar";
 import type { ActionItem } from "../../components/ActionBar";
 import { DocMissing, FieldRow, FieldTable, FormPage, TextRow, useDocWindow } from "../../components/docform";
 import { notesAsk } from "../../components/dialogs";
-import { RichTextEditor, RichTextView } from "../../components/RichText";
+import { copyDocumentLink, RichTextEditor, RichTextView } from "../../components/RichText";
 import { useTab } from "../../components/tabs";
 import { useNotes } from "../../data/store";
 import { useUI } from "../../data/ui";
@@ -30,11 +30,9 @@ import {
 } from "./journalHelpers";
 import "../../styles/notebook.css";
 
-/** Edit > Copy as Link > Document Link. */
+/** Edit > Copy as Link > Document Link (for the selected page in a view). */
 export function copyJournalLink(e: JournalEntry) {
-  const ui = useUI.getState();
-  ui.setClipboardLink({ coll: "journal", id: e.id, db: journalDb(e.db), title: entryTitle(e) });
-  ui.setStatus("Document link copied to the clipboard. Paste it into a rich text field.");
+  copyDocumentLink({ coll: "journal", id: e.id, db: journalDb(e.db), title: entryTitle(e) });
 }
 
 /** The Journal Entry form, in read or edit mode. */
@@ -108,9 +106,6 @@ export function JournalDocument() {
       if (isNew) addJournal({ ...d, ...entrySaveFields(d) });
       else updateJournal(d.id, entrySaveFields(d));
       useUI.getState().setStatus("Document saved.");
-    },
-    commands: {
-      copyAsLink: doc ? () => copyJournalLink(doc) : undefined,
     },
   });
 

@@ -126,11 +126,17 @@ export function ActionBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
+  // Close an open dropdown on the next click anywhere. React 18 runs this
+  // effect while the opening mousedown is still bubbling, so the listener is
+  // attached on the next tick or that same mousedown would close it again.
   useEffect(() => {
     if (!openId) return;
     const close = () => setOpenId(null);
-    window.addEventListener("mousedown", close);
-    return () => window.removeEventListener("mousedown", close);
+    const t = window.setTimeout(() => window.addEventListener("mousedown", close), 0);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("mousedown", close);
+    };
   }, [openId]);
 
   const visible = items.slice(0, fit);
