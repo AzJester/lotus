@@ -14,6 +14,7 @@ export function advance(ms: number, freq: RecurFreq, n: number): number {
   const d = new Date(ms);
   if (freq === "daily") d.setDate(d.getDate() + n);
   else if (freq === "weekly") d.setDate(d.getDate() + n * 7);
+  else if (freq === "yearly") d.setFullYear(d.getFullYear() + n);
   else d.setMonth(d.getMonth() + n);
   return d.getTime();
 }

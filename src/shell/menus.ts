@@ -233,6 +233,7 @@ function createMenu(): MenuItem[] {
   return [
     { label: "&Memo", accel: "Ctrl+M", run: () => s.requestMemo("") },
     { label: "&Calendar Entry", run: () => newDoc("calendar", "New Calendar Entry") },
+    { label: "M&eeting", run: () => newDoc("calendar", "New Meeting", { type: "meeting" }) },
     { label: "&To Do", run: () => newDoc("todos", "New To Do") },
     SEP,
     { label: "C&ontact", run: () => newDoc("contacts", "New Contact") },

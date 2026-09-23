@@ -4,6 +4,8 @@ import type { RouterContext } from "./router";
 import { makeMemo } from "./docs";
 import { parseAddressList, notesName, headerName } from "./names";
 import type { MailMessage, MailRule } from "./types";
+import { noticeFor, noticeMemo } from "./scheduling";
+import { advance, expandEntry } from "./calendarUtil";
 
 const me = { name: "Sam Rivera", email: "sam.rivera@acme.example.com" };
 
@@ -84,5 +86,57 @@ describe("server agents", () => {
     expect(notice.subject).toBe("Sam Rivera is out of the office.");
     expect(notice.body).toBe(outOfOfficeText(ooo.leaving, ooo.returning, "Back soon."));
     expect(myOutOfOffice(incoming, { ...ooo, notified: ["carl.jensen@acme.example.com"] }, me, now)).toBeNull();
+  });
+});
+
+describe("meeting notices", () => {
+  const entry = {
+    id: "mtg-1",
+    type: "meeting" as const,
+    subject: "Pricing review",
+    location: "Maple Room",
+    start: Date.UTC(2026, 8, 24, 15, 0),
+    end: Date.UTC(2026, 8, 24, 16, 0),
+    allDay: false,
+    description: "",
+    invitees: parseAddressList("Priya Nair"),
+    category: "",
+    alarm: false,
+  };
+
+  it("answers invitations and reschedules, but not cancellations", () => {
+    for (const [type, answered] of [
+      ["invitation", true],
+      ["rescheduled", true],
+      ["cancelled", false],
+    ] as const) {
+      const memo = noticeMemo(noticeFor(entry, type, me), me, entry.invitees, "", ctx().now);
+      const r = routeMemo(memo, ctx());
+      const answer = r.events.some((e) => e.kind === "deliver" && e.memo.from.name === "Priya Nair" && !!e.memo.notice);
+      expect(answer, type).toBe(answered);
+    }
+  });
+});
+
+describe("yearly repeats", () => {
+  it("advance a year at a time, so anniversaries land on the same date", () => {
+    const start = new Date(2026, 1, 14, 0, 0).getTime();
+    const next = new Date(advance(start, "yearly", 1));
+    expect([next.getFullYear(), next.getMonth(), next.getDate()]).toEqual([2027, 1, 14]);
+    const occ = expandEntry({
+      id: "ann",
+      type: "anniversary",
+      subject: "Work anniversary",
+      location: "",
+      start,
+      end: start + 60000,
+      allDay: true,
+      description: "",
+      invitees: [],
+      category: "",
+      alarm: false,
+      recurrence: { freq: "yearly", until: new Date(2030, 1, 14).getTime() },
+    });
+    expect(occ).toHaveLength(5);
   });
 });

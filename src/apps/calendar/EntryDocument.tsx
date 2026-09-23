@@ -284,7 +284,7 @@ function RepeatRow({ d, editing, set }: { d: EntryDraft; editing: boolean; set: 
     );
   }
   const defaultUntil = (freq: RecurFreq) =>
-    startOfDay(addMonths(d.start, freq === "daily" ? 1 : freq === "weekly" ? 3 : 12)) + DAY - 1;
+    startOfDay(addMonths(d.start, freq === "daily" ? 1 : freq === "weekly" ? 3 : freq === "yearly" ? 120 : 12)) + DAY - 1;
   return (
     <MultiRow label="Repeats">
       <span className="nf-field cal-repeat-field">
@@ -305,6 +305,7 @@ function RepeatRow({ d, editing, set }: { d: EntryDraft; editing: boolean; set: 
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
         </select>
       </span>
       {d.recurrence && (

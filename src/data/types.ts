@@ -168,7 +168,7 @@ export type CalEntryType =
   | "event"
   | "anniversary";
 
-export type RecurFreq = "daily" | "weekly" | "monthly";
+export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface Recurrence {
   freq: RecurFreq;

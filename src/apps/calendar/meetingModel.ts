@@ -254,7 +254,12 @@ export function retype(e: CalendarEntry, type: CalEntryType): CalendarEntry {
   const next: CalendarEntry = { ...e, type };
   if (type === "event" || type === "anniversary") {
     const span = allDaySpan(e.start, type === "anniversary" ? e.start : e.end);
-    return { ...next, allDay: true, ...span };
+    // An anniversary comes around every year, as the Notes form set it up.
+    const recurrence =
+      type === "anniversary" && !e.recurrence
+        ? { freq: "yearly" as const, until: new Date(span.start).setFullYear(new Date(span.start).getFullYear() + 10) }
+        : e.recurrence;
+    return { ...next, allDay: true, ...span, recurrence };
   }
   const start = e.allDay ? atMinutes(e.start, DEFAULT_HOUR * 60) : e.start;
   if (type === "reminder") return { ...next, allDay: false, start, end: start };

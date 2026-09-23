@@ -198,8 +198,10 @@ export function routeMemo(memo: MailMessage, ctx: RouterContext): RouteResult {
     const first = colleague.name.split(" ")[0];
 
     if (memo.notice) {
-      // Invitations get answered; other notices (your responses, cancellations) do not.
-      if (memo.notice.type === "invitation" && !colleagueAway(colleague, now) && colleague.replies) {
+      // Invitations and reschedules get answered; other notices (your
+      // responses, cancellations) do not.
+      const asks = memo.notice.type === "invitation" || memo.notice.type === "rescheduled";
+      if (asks && !colleagueAway(colleague, now) && colleague.replies) {
         const answer = colleagueResponse(person, memo.notice, now, rand());
         events.push({ kind: "deliver", at: later(45, 150), memo: { ...answer, date: 0 } });
       }
