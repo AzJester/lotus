@@ -11,6 +11,8 @@ answers meeting invitations, bounces bad addresses and replicates.
 
 ![Classic R5 theme: the Inbox](docs/mail-r5.png)
 
+![Classic R5 theme: the ring-bound planner](docs/calendar-r5.png)
+
 ## What it does
 
 ### The client
@@ -90,16 +92,36 @@ answers meeting invitations, bounces bad addresses and replicates.
   "[Replication or Save Conflict]" document. The Replicator page shows each
   database with its pending changes, progress and schedule.
 
+### Calendar and Scheduling
+- Day, Two Days, Work Week, One Week, Two Weeks and One Month views with a
+  date picker, plus All Entries and Meetings lists. The Classic theme draws the
+  week views as the R4/R5 ring-bound planner with month tabs.
+- Appointments, meetings, reminders, events and anniversaries; daily, weekly,
+  monthly and yearly repeats; drag an entry to reschedule it; alarms fire in
+  any window with Snooze and Done.
+- Meetings send invitations by mail. The Scheduler shows everyone's free and
+  busy time and finds a free slot; the Invitee Status table fills in as
+  colleagues accept, tentatively accept, decline or propose a new time.
+  Moving a meeting offers to send a reschedule notice, and deleting it a
+  cancellation. Invitations you receive can also be delegated.
+
+![A meeting with the Scheduler and Invitee Status](docs/meeting-notes8.png)
+
 ### The other databases
-- **Calendar**: day, week, two-week and month views, the R4/R5 ring-bound
-  planner in the Classic theme, meetings with a free-time scheduler and
-  invitee responses, repeating entries, and alarms that fire in any window.
-- **Address Book**, **To Do**, **Personal Journal** and **Discussion**, each
-  with its Notes views (By Category, By Due Date, By Author, threads) and
-  document forms.
+- **Address Book**: Contacts with an A-Z index, By Category and Groups views,
+  a business card preview, the Contact form, and vCard import and export.
+- **To Do**: By Due Date (Overdue, Today, Tomorrow, This Week...), By
+  Category, By Status and Complete, with Mark Complete.
+- **Personal Journal**: By Date and By Category, rich text pages.
+- **Discussion**: threaded All Documents and By Category views, By Author,
+  My Documents, Main Topic / Response / Response to Response forms, and unread
+  marks for posts that arrive by replication. Create a second discussion or
+  journal from its template with File > Database > New.
 - **Acme's Directory** (read-only Domino Directory) and **Lotus Notes Help**
   (Contents, Index and Search, plus Help > About This Database and Using This
   Database for every database).
+
+![The Workspace](docs/workspace-notes8.png)
 
 ## Tech
 
