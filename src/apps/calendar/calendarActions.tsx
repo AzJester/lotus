@@ -83,17 +83,16 @@ export function sendNotices(entryId: string, kind: "invitation" | "rescheduled" 
 }
 
 /** The invitation (or latest reschedule) you received for a meeting on your calendar. */
-export function invitationFor(entryId: string): MailMessage | undefined {
-  const mine = notes().user.email.toLowerCase();
-  return notes()
-    .mail.filter(
-      (m) =>
-        m.notice &&
-        m.notice.entryId === entryId &&
-        (m.notice.type === "invitation" || m.notice.type === "rescheduled") &&
-        m.from.email.toLowerCase() !== mine,
-    )
-    .sort((a, b) => b.date - a.date)[0];
+export function invitationFor(entryId: string, mail = notes().mail, myEmail = notes().user.email): MailMessage | undefined {
+  const mine = myEmail.toLowerCase();
+  let best: MailMessage | undefined;
+  for (const m of mail) {
+    const n = m.notice;
+    if (!n || n.entryId !== entryId || (n.type !== "invitation" && n.type !== "rescheduled")) continue;
+    if (m.from.email.toLowerCase() === mine) continue;
+    if (!best || m.date > best.date) best = m;
+  }
+  return best;
 }
 
 /** Tell the chair you will not attend (and take the meeting off your calendar). */

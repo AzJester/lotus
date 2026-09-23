@@ -59,7 +59,7 @@ import {
   validateEntry,
 } from "./meetingModel";
 import type { EntryDraft } from "./meetingModel";
-import { copyIntoMemo, copyIntoTodo, currentUser, deleteEntries, sendNotices } from "./calendarActions";
+import { copyIntoMemo, copyIntoTodo, currentUser, deleteEntries, invitationFor, sendNotices } from "./calendarActions";
 import { InviteesField } from "./InviteesField";
 import { InviteeStatusTable, Scheduler } from "./Scheduler";
 import "../../styles/calendar.css";
@@ -362,14 +362,7 @@ export function CalendarDocument() {
   const contacts = useNotes((s) => s.contacts);
   const groups = useNotes((s) => s.contactGroups);
   const user = useNotes((s) => s.user);
-  const invitation = useNotes((s) =>
-    s.mail.find(
-      (m) =>
-        m.notice?.entryId === id &&
-        (m.notice.type === "invitation" || m.notice.type === "rescheduled") &&
-        m.from.email.toLowerCase() !== s.user.email.toLowerCase(),
-    ),
-  );
+  const invitation = useNotes((s) => invitationFor(id, s.mail, s.user.email));
   const me = useMemo(() => ({ name: user.name, email: user.email }), [user.name, user.email]);
   const docDraft = useMemo(() => (stored ? toDraft(stored) : undefined), [stored]);
   const sendNow = useRef(false);
