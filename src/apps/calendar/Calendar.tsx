@@ -271,7 +271,8 @@ export default function Calendar() {
 
   // --- keyboard (the global handler covers Delete, F9 and Alt+Enter) -------
   const onKeyDown = (ev: KeyboardEvent<HTMLDivElement>) => {
-    if (ev.defaultPrevented || (ev.target as HTMLElement).closest("input, textarea, select")) return;
+    if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if ((ev.target as HTMLElement).closest("input, textarea, select")) return;
     const sorted = [...occurrences].filter((e) => days.some((d) => entriesForDay([e], d).length)).sort((a, b) => a.start - b.start);
     const i = sorted.findIndex((e) => e.id === selectedId);
     const handled = () => {

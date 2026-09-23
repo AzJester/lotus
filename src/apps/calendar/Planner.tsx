@@ -469,6 +469,7 @@ function PlannerEntry({
   };
   const draggable = !!hooks.onEntryDragStart && (hooks.canDrag?.(entry) ?? true);
   const key = (ev: KeyboardEvent) => {
+    if (ev.altKey || ev.ctrlKey || ev.metaKey) return; // Alt+Enter is Document Properties
     if (ev.key === "Enter") {
       ev.preventDefault();
       onOpen(entry);
