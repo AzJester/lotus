@@ -15,7 +15,7 @@ import type { ReplicaSnapshot } from "../../data/types";
 import "../../styles/replication.css";
 
 interface Row {
-  key: keyof ReplicaSnapshot;
+  key: Exclude<keyof ReplicaSnapshot, "stubs">;
   label: string;
   icon: string;
 }
@@ -24,9 +24,7 @@ interface Row {
 const ROWS: Row[] = [
   { key: "mail", label: "Mail", icon: "✉️" },
   { key: "calendar", label: "Calendar", icon: "📅" },
-  { key: "contacts", label: "Contacts", icon: "👤" },
   { key: "todos", label: "To Do", icon: "✅" },
-  { key: "journal", label: "Notebook", icon: "📓" },
   { key: "discussion", label: "Discussion", icon: "💬" },
 ];
 
@@ -53,18 +51,16 @@ export default function Replicator() {
   // Subscribe to the collections + server so the list updates after a sync.
   const mail = useNotes((s) => s.mail);
   const calendar = useNotes((s) => s.calendar);
-  const contacts = useNotes((s) => s.contacts);
   const todos = useNotes((s) => s.todos);
-  const journal = useNotes((s) => s.journal);
   const discussion = useNotes((s) => s.discussion);
   const server = useNotes((s) => s.server);
   const lastReplicated = useNotes((s) => s.lastReplicated);
 
   const [busy, setBusy] = useState(false);
 
-  const locals: Record<keyof ReplicaSnapshot, { id: string }[]> = useMemo(
-    () => ({ mail, calendar, contacts, todos, journal, discussion }),
-    [mail, calendar, contacts, todos, journal, discussion],
+  const locals: Record<Row["key"], { id: string }[]> = useMemo(
+    () => ({ mail, calendar, todos, discussion }),
+    [mail, calendar, todos, discussion],
   );
 
   const onReplicate = () => {

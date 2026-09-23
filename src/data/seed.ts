@@ -11,12 +11,18 @@ import type {
   CustomFolder,
   DiscussionPost,
   CalendarEntry,
+  DocMeta,
   JournalEntry,
   MailMessage,
+  MailPrefs,
   MailRule,
+  NotesDatabase,
+  OutOfOffice,
   TodoTask,
   UserProfile,
 } from "./types";
+import { APPS_SERVER, MAIL_SERVER } from "./directory";
+import { meetingSummary, noticeMemo } from "./scheduling";
 
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
@@ -32,8 +38,47 @@ function at(dayOffset: number, hour: number, minute = 0): number {
   return d.getTime() + dayOffset * DAY + hour * HOUR + minute * 60 * 1000;
 }
 
+/** The weekday `ahead` working days from today at the given hour. */
+function nextWeekday(now: number, ahead: number, hour: number): number {
+  const d = new Date(now);
+  d.setHours(hour, 0, 0, 0);
+  let left = ahead;
+  while (left > 0) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) left--;
+  }
+  return d.getTime();
+}
+
+function db(
+  id: string,
+  title: string,
+  template: NotesDatabase["template"],
+  templateName: string,
+  filePath: string,
+  replicaId: string,
+  serverReplica: string | undefined,
+  access: NotesDatabase["access"],
+): NotesDatabase {
+  return {
+    id,
+    title,
+    template,
+    templateName,
+    server: "Local",
+    filePath,
+    replicaId,
+    created: Date.now() - 400 * DAY,
+    serverReplica,
+    access,
+  };
+}
+
 export interface SeedData {
   user: UserProfile;
+  prefs: MailPrefs;
+  ooo: OutOfOffice;
+  databases: NotesDatabase[];
   mail: MailMessage[];
   calendar: CalendarEntry[];
   contacts: Contact[];
@@ -50,6 +95,7 @@ export function buildSeed(): SeedData {
     name: "Sam Rivera",
     email: "sam.rivera@acme.example.com",
     location: "Office (Network)",
+    notesName: "Sam Rivera/Acme",
   };
 
   const now = Date.now();
@@ -211,9 +257,11 @@ export function buildSeed(): SeedData {
       end: at(2, 12, 0),
       allDay: false,
       description: "Quarterly planning with all team leads. Bring top three priorities.",
-      invitees: [boss, carl, priya],
+      invitees: [boss, carl, priya, p(me.name, me.email)],
       category: "Planning",
       alarm: true,
+      chair: boss,
+      myResponse: "accepted",
     },
     {
       id: id("c", 2),
@@ -281,6 +329,27 @@ export function buildSeed(): SeedData {
       alarm: false,
     },
   ];
+
+  // A meeting you chair, with responses already in.
+  calendar.push({
+    id: id("c", 7),
+    type: "meeting",
+    subject: "Northwind proposal prep",
+    location: "Your office",
+    start: at(1, 11, 0),
+    end: at(1, 11, 30),
+    allDay: false,
+    description: "Pull the two-year numbers together before Diane's review.",
+    invitees: [carl, priya],
+    category: "Sales",
+    alarm: true,
+    alarmMinutes: 10,
+    chair: p(me.name, me.email),
+    inviteeStatus: [
+      { person: carl, status: "accepted" },
+      { person: priya, status: "tentative", comment: "May run late from the forecast call." },
+    ],
+  });
 
   const contacts: Contact[] = [
     {
@@ -541,8 +610,74 @@ export function buildSeed(): SeedData {
     },
   ];
 
+  for (const j of journal) j.db = "journal";
+  for (const d of discussion) d.db = "discussion";
+
+  // A meeting invitation waiting in the Inbox, so Calendar & Scheduling is
+  // visible from the first minute.
+  const inviteStart = nextWeekday(now, 2, 14);
+  const invite = noticeMemo(
+    {
+      type: "invitation",
+      entryId: "c-invite-1",
+      subject: "Northwind pricing review",
+      location: "Maple Room",
+      start: inviteStart,
+      end: inviteStart + HOUR,
+      chair: boss,
+    },
+    boss,
+    [p(me.name, me.email), carl, priya],
+    "Let's walk through the two-year pricing before Marcus calls on Friday. Bring the margin model.\n\n" +
+      meetingSummary({
+        type: "invitation",
+        entryId: "c-invite-1",
+        subject: "Northwind pricing review",
+        location: "Maple Room",
+        start: inviteStart,
+        end: inviteStart + HOUR,
+        chair: boss,
+      }),
+    now - 40 * 60 * 1000,
+  );
+  invite.id = id("m", 9);
+  mail.unshift(invite);
+
+  const databases: NotesDatabase[] = [
+    db("mail", "Sam Rivera - Mail", "mail", "StdR50Mail", "mail\\srivera.nsf", "85256A2B:004F3E21", MAIL_SERVER, "Manager"),
+    db("contacts", "Sam Rivera's Address Book", "addressbook", "StdR50PersonalAddressBook", "names.nsf", "85256A2B:00112C4D", undefined, "Manager"),
+    db("journal", "Personal Journal", "journal", "StdR5PersonalJournal", "journal.nsf", "85256A2B:0021AA07", undefined, "Manager"),
+    db("discussion", "Acme Team Discussion", "discussion", "StdR50Disc", "apps\\acmedisc.nsf", "85256A11:0077E5B2", APPS_SERVER, "Editor"),
+    db("outbox", "Outgoing Mail", "outbox", "StdR50MailBox", "mail.box", "85256A2B:00000001", undefined, "Manager"),
+    db("help", "Lotus Notes Help", "help", "StdR50Help", "help\\help5_client.nsf", "85256800:0005F1C9", undefined, "Reader"),
+    {
+      ...db("directory", "Acme's Directory", "directory", "StdR50PubNames", "names.nsf", "85256A00:0001B7F3", undefined, "Reader"),
+      server: MAIL_SERVER,
+    },
+  ];
+
+  const stamp = <T extends DocMeta>(list: T[], when: (d: T) => number, by: (d: T) => string) => {
+    for (const d of list) {
+      const t = when(d);
+      d.created = d.created ?? t;
+      d.modified = d.modified ?? t;
+      d.seq = d.seq ?? 1;
+      d.updatedBy = d.updatedBy ?? by(d);
+    }
+  };
+  stamp(mail, (m) => m.date, (m) => m.from.name);
+  stamp(calendar, (e) => Math.min(e.start, now), () => me.name);
+  stamp(contacts, () => now - 30 * DAY, () => me.name);
+  stamp(contactGroups, () => now - 30 * DAY, () => me.name);
+  stamp(todos, (t) => Math.min(t.start ?? now - DAY, now), () => me.name);
+  stamp(journal, (j) => j.modified, () => me.name);
+  stamp(discussion, (d) => d.date, (d) => d.author.name);
+
   return {
     user: me,
+    prefs: { saveSentMail: "always", newMailNotify: true },
+    ooo: { enabled: false, leaving: at(7, 0), returning: at(14, 0), message: "", notified: [] },
+    databases,
     mail,
     calendar,
     contacts,
