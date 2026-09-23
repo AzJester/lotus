@@ -1,87 +1,179 @@
 /* ==========================================================================
-   To Do module
-   Builds on the shared layout (.app, .view, .nav-pane, .preview-pane …).
-   Only adds classes unique to the task list: completed strike-through, the
-   leading checkbox column, subtle group headers, and the detail form footer.
+   To Do: the To Do views (By Due Date, By Category, By Status, Complete),
+   the preview pane and the To Do form. The navigator, view, form band and
+   fields come from the shared classes in views.css; this file adds the
+   stacked view and preview, overdue and completed rows, the overdue count in
+   the navigator, the read-mode status line and the Priority radio buttons.
    ========================================================================== */
 
-.todo-list .view-head .col,
-.todo-list .view-row .col {
-  border-right: none;
+.todo-app,
+.todo-window {
+  --todo-done: #7b7b76;
+  --todo-line-due: #26579f;
+  --todo-line-done: #2f6b2f;
+}
+.theme-r5 .todo-app,
+.theme-r5 .todo-window {
+  --todo-done: #808080;
+  --todo-line-due: #000080;
+  --todo-line-done: #008000;
 }
 
-/* The checkbox sits flush and small to match the Win9x control scale. */
-.todo-row input[type="checkbox"] {
-  margin: 0;
-  cursor: default;
+/* --- Navigator ----------------------------------------------------------- */
+.todo-overdue-count {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  font-size: var(--fs-xs);
+  font-weight: bold;
+  line-height: 13px;
+  color: var(--unread);
+  background: #fff;
+  border: 1px solid #e8aaaa;
+  border-radius: 7px;
+}
+.theme-r5 .todo-overdue-count {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+/* Stays red on the navy selection bar in R5, as the unread counts do not. */
+.theme-r5 .nav-item.active .todo-overdue-count {
+  background: #fff;
+  padding: 0 3px;
+}
+.todo-nav-links {
+  margin-top: 2px;
+  border-top: 1px solid var(--grid-soft);
+}
+.theme-r5 .todo-nav-links {
+  border-top-color: #c0c0c0;
 }
 
+/* --- View and preview ---------------------------------------------------- */
+.todo-stack {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.todo-stack.preview-bottom {
+  flex-direction: column;
+}
+.todo-stack.preview-bottom > .list-pane {
+  flex: 0 0 50%;
+}
+.todo-stack.preview-right > .list-pane {
+  flex: 0 0 55%;
+}
+.todo-stack.preview-off > .list-pane {
+  flex: 1;
+}
+
+/* Overdue To Dos are red; completed ones gray (the check is in the Status
+   column, so a deletion mark's strike-through stays unambiguous). */
+.todo-list .nview-row.todo-overdue {
+  color: var(--unread);
+}
+.todo-list .nview-row.todo-done {
+  color: var(--todo-done);
+}
 .todo-subject {
+  overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Completed tasks: struck through and muted (still readable when selected). */
-.todo-row.todo-done .todo-subject {
-  text-decoration: line-through;
-  color: var(--ink-muted);
-}
-.todo-row.todo-done.selected .todo-subject {
-  color: #dfe9f6;
+.todo-list .nview-cell > .todo-prio {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  overflow: visible;
 }
 
-/* --- Group header rows (By Category / Status / Due Date) ----------------- */
-.todo-group {
+/* --- The To Do form ------------------------------------------------------ */
+.todo-status-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 19px;
-  padding: 0 8px;
-  background: linear-gradient(180deg, #eeebe4, #ddd9d0);
-  border-bottom: 1px solid var(--shadow);
-  border-top: 1px solid var(--hl);
-  font-size: var(--fs-sm);
-  position: sticky;
-  top: 0;
-}
-.todo-group-label {
+  gap: 6px;
+  margin: 10px 14px 0;
+  padding: 3px 8px;
   font-weight: bold;
-  color: var(--ink-soft);
+  border: 1px solid;
+  border-radius: 2px;
+  user-select: none;
 }
-.todo-group-count {
+.todo-status-line.tone-overdue {
+  color: var(--unread);
+  background: #fff2f2;
+  border-color: #efb9b9;
+}
+.todo-status-line.tone-complete {
+  color: var(--todo-line-done);
+  background: #f0f8ed;
+  border-color: #b9d9ae;
+}
+.todo-status-line.tone-due,
+.todo-status-line.tone-future {
+  color: var(--todo-line-due);
+  background: #eef4fc;
+  border-color: #bcd0ec;
+}
+.todo-status-line.tone-none {
   color: var(--ink-muted);
-  font-size: var(--fs-xs);
-}
-
-/* The "Quick Filters" sub-heading reuses the nav-title bevel but tightened. */
-.todo-nav-sub {
-  margin-top: 2px;
-  border-top: 1px solid var(--hl);
-}
-
-/* --- Detail / edit form ------------------------------------------------- */
-.todo-form {
-  overflow-y: auto;
-}
-.todo-completed-line {
-  margin-top: 3px;
-  font-size: var(--fs-sm);
-}
-.todo-fields {
-  padding: 8px 0 4px;
-}
-.todo-desc {
-  min-height: 120px;
-  resize: none;
-  font-family: var(--font-doc);
-  font-size: 13px;
-  line-height: 1.45;
-  background: var(--memo-yellow);
-}
-.todo-form-foot {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 14px;
-  margin-top: auto;
-  border-top: 1px solid var(--shadow);
   background: var(--face-lighter);
+  border-color: var(--grid);
+}
+/* R5 computes the line as plain colored text on the white form. */
+.theme-r5 .todo-status-line {
+  margin-top: 8px;
+  padding: 2px 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.todo-read-subject {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+}
+/* The icon must not make the line taller than its label. */
+.todo-read-subject .px-icon {
+  margin: -2px 0;
+}
+.todo-form .field-read {
+  max-width: 560px;
+}
+
+.todo-radios {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 16px;
+  padding: 2px 0;
+}
+.todo-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.todo-radio input {
+  margin: 0;
+}
+
+.todo-form textarea.todo-desc {
+  width: 520px;
+  max-width: 100%;
+  min-height: 132px;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .todo-stack {
+    flex-direction: column;
+  }
+  .todo-form textarea.todo-desc {
+    width: 100%;
+  }
 }

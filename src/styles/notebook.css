@@ -1,91 +1,205 @@
 /* ==========================================================================
-   Notebook / Journal module
-   Reuses the shared layout (.app, .nav-pane, .list-pane, .preview-pane,
-   .view, .form, .memo-body) and adds only the chrome unique to the note
-   editor: a subject/category header row, a subtle timestamp line, and the
-   yellow legal-pad body that fills the form.
+   Notebook (Personal Journal): the By Date and By Category views with the
+   preview pane, the Journal Entry form, and the Categorize and Select
+   Keywords dialogs (also used by the discussion's Category field). The
+   shared pieces (.nview, .doc-form, .form-band, .field-table, .nf-field,
+   .rt-*) are styled in views.css and shell.css.
    ========================================================================== */
 
-.notebook-list .view-head .col,
-.notebook-list .view-row .col {
-  border-right: none;
-}
-
-/* The editable note form fills the preview pane top to bottom. */
-.note-form {
-  overflow: hidden; /* the body textarea owns the scroll */
-}
-
-/* --- Header: subject + category ---------------------------------------- */
-.note-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: linear-gradient(180deg, #fcfbf3, #f1ede0);
-  border-bottom: 1px solid var(--shadow);
-  flex: 0 0 auto;
-}
-.note-subject {
+/* --- View and preview ---------------------------------------------------------- */
+.nb-stack {
   flex: 1;
   min-width: 0;
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--ink);
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 2px 4px;
-}
-.note-subject:hover {
-  border-color: var(--shadow);
-  background: var(--white);
-}
-.note-subject:focus {
-  border: 1px solid var(--shadow);
-  border-top-color: var(--shadow-dark);
-  border-left-color: var(--shadow-dark);
-  background: var(--white);
-}
-.note-cat {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-.note-cat label {
-  font-size: var(--fs-sm);
-  font-weight: bold;
-  color: var(--ink-soft);
-}
-.note-cat-input {
-  width: 130px;
-}
-
-/* --- Timestamps -------------------------------------------------------- */
-.note-meta {
-  flex: 0 0 auto;
-  padding: 4px 12px;
-  font-size: var(--fs-sm);
-  background: #fcfbf3;
-  border-bottom: 1px solid var(--grid-soft);
-}
-
-/* --- Body (yellow legal-pad memo) -------------------------------------- */
-.note-body {
-  flex: 1;
   min-height: 0;
-  margin: 8px 12px;
+  display: flex;
+}
+.nb-stack.preview-bottom {
+  flex-direction: column;
+}
+.nb-stack.preview-bottom > .list-pane {
+  flex: 0 0 44%;
+}
+.nb-stack.preview-right > .list-pane {
+  flex: 0 0 48%;
+}
+.nb-stack.preview-off > .list-pane {
+  flex: 1;
+}
+.nb-stack > .preview-pane {
+  flex: 1;
+}
+.nb-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nb-subject.untitled {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.nview-row.caret .nb-subject.untitled,
+.nview-row.marked .nb-subject.untitled {
+  color: inherit;
 }
 
-/* --- Footer actions ---------------------------------------------------- */
-.note-actions {
-  flex: 0 0 auto;
+/* --- The Journal Entry form ---------------------------------------------------- */
+.nb-form .field-table {
+  margin-bottom: 4px;
+}
+/* Read mode: the page below a rule, like a sheet in the notebook. */
+.nb-body {
+  margin: 2px 14px 0;
+  padding: 12px 2px 8px;
+  min-height: 120px;
+  border-top: 1px solid #c9d6e8;
+}
+.theme-r5 .nb-body {
+  border-top: 1px solid #808080;
+}
+/* Edit mode: the rich text field with its toolbar. */
+.nb-editor {
+  margin: 4px 14px 0;
+  border: 1px solid #a9b8cf;
+}
+.nb-editor .rt-body {
+  min-height: 300px;
+}
+/* R5 marks the rich text field with the red corner brackets of every field. */
+.theme-r5 .nb-editor {
+  position: relative;
+  border: none;
+  padding: 0 7px;
+}
+.theme-r5 .nb-editor::before,
+.theme-r5 .nb-editor::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border: 1px solid #c00000;
+  pointer-events: none;
+}
+.theme-r5 .nb-editor::before {
+  left: 0;
+  border-right: none;
+}
+.theme-r5 .nb-editor::after {
+  right: 0;
+  border-left: none;
+}
+.theme-r5 .nb-editor .rt-toolbar {
+  background: #c0c0c0;
+  border-color: #808080;
+}
+
+/* The preview pane shows the form a little tighter. */
+.nb-form.compact .form-band {
+  padding: 4px 12px;
+}
+.nb-form.compact .field-table {
+  margin: 6px 12px 2px;
+}
+.nb-form.compact .field-table .frow > th {
+  width: 100px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.nb-form.compact .field-table .frow > td {
+  padding: 0;
+}
+.nb-form.compact .nb-body {
+  margin: 2px 12px 0;
+  padding-top: 8px;
+  font-size: 13px;
+}
+
+/* --- Categories field: the helper button (Select Keywords) -------------------- */
+.nb-kw-btn {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-left: 3px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--face);
+  border: 1px solid;
+  border-color: var(--hl) var(--shadow-dark) var(--shadow-dark) var(--hl);
+  box-shadow: inset -1px -1px 0 var(--shadow);
+}
+.nb-kw-btn:active {
+  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+  box-shadow: inset 1px 1px 0 var(--shadow);
+}
+.nf-field > .nb-kw-btn {
+  margin-right: 0;
+}
+
+/* --- Categorize / Select Keywords dialogs ------------------------------------- */
+.nb-kw {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nb-kw-list {
+  height: 150px;
+  overflow-y: auto;
+  padding: 2px 0;
+  background: var(--paper);
+  border: 1px solid;
+  border-color: var(--shadow) var(--hl) var(--hl) var(--shadow);
+  box-shadow: inset 1px 1px 0 var(--shadow-dark);
+}
+.nb-kw-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 4px;
+  white-space: nowrap;
+  outline: none;
+}
+.nb-kw-item:hover {
+  background: var(--sel-soft);
+}
+.nb-kw-item:focus {
+  outline: 1px dotted var(--ink);
+  outline-offset: -1px;
+}
+.nb-kw-item.on .nb-kw-label {
+  font-weight: bold;
+}
+.nb-kw-check {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+}
+.nb-kw-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nb-kw-empty {
+  padding: 6px 8px;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+.nb-kw-new {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px 10px;
+  margin-top: 2px;
 }
-.note-actions .btn.primary {
-  font-weight: bold;
-  background: linear-gradient(180deg, #d9ead0, #bcd6a8);
+.nb-kw-new input {
+  flex: 1;
+  min-width: 0;
+}
+.nb-kw-hint {
+  color: var(--ink-muted);
+  font-size: var(--fs-sm);
 }

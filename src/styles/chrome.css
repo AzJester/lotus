@@ -1,7 +1,8 @@
 /* ==========================================================================
-   Lotus Notes — application chrome
-   The faux-OS window: title bar, menu bar, SmartIcons toolbar, the left
-   bookmark bar, window tabs, content area and status bar.
+   Lotus Notes: application chrome
+   The client window: title bar, menu bar, SmartIcons toolbar, bookmark bar,
+   window tabs, the window host and the status bar. The default look is the
+   Notes 8 / Windows XP era; .theme-r5 is Notes R5 on Windows 98.
    ========================================================================== */
 
 .notes-window {
@@ -14,29 +15,19 @@
   overflow: hidden;
 }
 
-/* --- Title bar (Windows XP "Luna" blue + IBM Lotus Notes 8 icon) -------- */
+/* --- Title bar: Windows XP "Luna" ------------------------------------------ */
 .titlebar {
   display: flex;
   align-items: center;
   height: 28px;
   padding: 0 4px 2px 5px;
   color: #fff;
-  background: linear-gradient(
-    180deg,
-    #0a4bd1 0%,
-    #3a7ff0 8%,
-    #1c64e0 38%,
-    #0b50cf 52%,
-    #0a47bd 90%,
-    #2a6fe0 100%
-  );
+  background: linear-gradient(180deg, #0a4bd1 0%, #3a7ff0 8%, #1c64e0 38%, #0b50cf 52%, #0a47bd 90%, #2a6fe0 100%);
   border-bottom: 1px solid #07307e;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
   flex: 0 0 auto;
   user-select: none;
 }
-
-/* The amber Notes 8 app icon */
 .tb-appicon {
   width: 19px;
   height: 19px;
@@ -46,8 +37,7 @@
   display: grid;
   place-items: center;
   background: radial-gradient(circle at 32% 24%, #ffe680 0%, #ffc02e 42%, #f59405 78%, #d97604 100%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(140, 70, 0, 0.5),
-    0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.85), inset 0 -2px 3px rgba(140, 70, 0, 0.5), 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 .tb-appicon-mark {
   font-size: 12px;
@@ -55,43 +45,14 @@
   color: #fff;
   text-shadow: 0 1px 1px rgba(150, 80, 0, 0.6);
 }
-
-/* About IBM Lotus Notes dialog */
-.about-box {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-.about-icon {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  border-radius: 8px;
-  margin-right: 0;
-}
-.about-icon .tb-appicon-mark {
-  font-size: 24px;
-}
-.about-title {
-  font-size: 15px;
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-.about-text p {
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-.about-version {
-  margin-top: 6px;
-  color: var(--ink-muted);
-  font-size: var(--fs-sm);
-}
-
 .titlebar-title {
   font-weight: bold;
   font-size: var(--fs);
   letter-spacing: 0.2px;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .titlebar-spacer {
   flex: 1;
@@ -101,8 +62,6 @@
   gap: 3px;
   align-items: center;
 }
-
-/* XP-style window buttons: glossy rounded squares, red close */
 .titlebar-btn {
   width: 22px;
   height: 21px;
@@ -133,8 +92,6 @@
 .titlebar-btn.close:active {
   background: linear-gradient(180deg, #cf3417, #e8643a);
 }
-
-/* Crisp glyphs drawn with CSS so they match the XP look */
 .xp-min {
   width: 8px;
   height: 3px;
@@ -150,7 +107,79 @@
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
-/* --- Menu bar ----------------------------------------------------------- */
+/* --- Title bar: Windows 98 (Classic R5) ------------------------------------ */
+.titlebar.tb98 {
+  height: 20px;
+  padding: 0 2px 0 3px;
+  margin: 2px 2px 0;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  border: none;
+  box-shadow: none;
+}
+.tb98 .titlebar-title {
+  font-family: Tahoma, "MS Sans Serif", Arial, sans-serif;
+  font-size: 11px;
+  text-shadow: none;
+  letter-spacing: 0;
+}
+.tb98-icon {
+  display: grid;
+  grid-template-columns: 7px 7px;
+  gap: 1px;
+  width: 15px;
+  height: 15px;
+  margin-right: 4px;
+  flex: 0 0 15px;
+}
+.tb98-icon i {
+  display: block;
+  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.35);
+}
+.tb98-btns {
+  display: flex;
+  gap: 0;
+}
+.tb98-btn {
+  width: 16px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+  background: #c0c0c0;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  color: #000;
+}
+.tb98-btn.close {
+  margin-left: 2px;
+}
+.tb98-btn:active {
+  border-color: #000 #fff #fff #000;
+  box-shadow: inset 1px 1px 0 #808080;
+}
+.tb98-btn .g-min {
+  width: 6px;
+  height: 2px;
+  background: #000;
+  margin-top: 6px;
+}
+.tb98-btn .g-max {
+  width: 9px;
+  height: 8px;
+  border: 1px solid #000;
+  border-top-width: 2px;
+}
+.tb98-btn .g-close {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 1;
+  font-family: Arial, sans-serif;
+}
+
+/* --- Menu bar --------------------------------------------------------------- */
 .menubar {
   display: flex;
   align-items: stretch;
@@ -167,62 +196,49 @@
   display: flex;
   align-items: center;
   font-size: var(--fs);
-}
-.menu-item:hover,
-.menu-item.open {
-  background: var(--sel);
-  color: #fff;
-}
-.menu-popup {
-  position: absolute;
-  top: 21px;
-  min-width: 190px;
-  background: var(--face);
-  border-top: 1px solid var(--hl);
-  border-left: 1px solid var(--hl);
-  border-right: 1px solid var(--shadow-dark);
-  border-bottom: 1px solid var(--shadow-dark);
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35), inset -1px -1px 0 var(--shadow);
-  padding: 2px;
-  z-index: 100;
-  /* The open menu title is white-on-blue; don't let that color leak into
-     the dropdown, or every enabled item renders white on gray. */
-  color: var(--ink);
-}
-.menu-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 3px 22px 3px 24px;
-  font-size: var(--fs);
   position: relative;
 }
-.menu-row:hover:not(.disabled) {
+.menu-item:hover,
+.menu-item.open,
+.menu-item.hot {
   background: var(--sel);
   color: #fff;
 }
-.menu-row.disabled {
-  color: var(--shadow);
+.menu-item > .menu-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
 }
-.menu-row .accel {
-  color: inherit;
-  opacity: 0.75;
-  font-size: var(--fs-sm);
+.theme-r5 .menubar {
+  border-bottom: none;
+  box-shadow: none;
+  margin: 0 2px;
 }
-.menu-sep {
-  height: 0;
-  border-top: 1px solid var(--shadow);
-  border-bottom: 1px solid var(--hl);
-  margin: 3px 2px;
+.theme-r5 .menu-item {
+  padding: 2px 7px;
+}
+/* Windows 98 menus: the open title looks pressed, not highlighted. */
+.theme-r5 .menu-item.open {
+  background: transparent;
+  color: #000;
+  box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+}
+.theme-r5 .menu-item:hover:not(.open) {
+  background: transparent;
+  color: #000;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #fff;
+}
+.theme-r5 .menu-item.hot {
+  background: #000080;
+  color: #fff;
 }
 
-/* --- SmartIcons toolbar ------------------------------------------------- */
+/* --- SmartIcons toolbar ------------------------------------------------------ */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 1px;
-  height: 27px;
+  height: 28px;
   padding: 1px 4px;
   background: var(--face);
   border-bottom: 1px solid var(--shadow);
@@ -230,22 +246,27 @@
   flex: 0 0 auto;
 }
 .tool-btn {
-  width: 23px;
-  height: 22px;
+  width: 24px;
+  height: 23px;
   display: grid;
   place-items: center;
-  font-size: 13px;
-  background: var(--face);
+  padding: 0;
+  background: transparent;
   border: 1px solid transparent;
+  color: var(--ink);
 }
-.tool-btn:hover {
+.tool-btn:hover:not([disabled]) {
   border-top: 1px solid var(--hl);
   border-left: 1px solid var(--hl);
-  border-right: 1px solid var(--shadow-dark);
-  border-bottom: 1px solid var(--shadow-dark);
+  border-right: 1px solid var(--shadow);
+  border-bottom: 1px solid var(--shadow);
 }
-.tool-btn:active {
-  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
+.tool-btn:active:not([disabled]) {
+  border-color: var(--shadow) var(--hl) var(--hl) var(--shadow);
+}
+.tool-btn[disabled] .px-icon {
+  opacity: 0.35;
+  filter: grayscale(1);
 }
 .tool-sep {
   width: 0;
@@ -254,39 +275,60 @@
   border-right: 1px solid var(--hl);
   margin: 0 3px;
 }
-.toolbar .addr {
+.tool-fill {
   flex: 1;
+  min-width: 8px;
+}
+.toolbar .addr {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-left: 8px;
+  margin: 0 4px;
+  min-width: 0;
 }
 .toolbar .addr label {
   font-size: var(--fs-sm);
   color: var(--ink-muted);
 }
-.toolbar .addr {
-  justify-content: flex-end;
-}
 .toolbar .addr input.tb-search {
-  flex: 0 0 230px;
-  max-width: 230px;
+  width: 230px;
   height: 20px;
 }
-.tb-search-btn {
-  height: 22px;
-  min-height: 22px;
-  padding: 0 12px;
-  margin-left: 5px;
+.toolbar .addr input.tb-address {
+  width: 330px;
+  height: 20px;
+  font-family: var(--font-ui);
+}
+.tool-nav {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding-left: 4px;
+  border-left: 1px solid var(--shadow);
+  box-shadow: inset 1px 0 0 var(--hl);
+}
+.theme-r5 .toolbar {
+  margin: 0 2px;
+  border-top: 1px solid var(--hl);
+  border-bottom: 1px solid var(--shadow);
+  box-shadow: none;
+}
+/* R5 put the navigation buttons at the far right of the toolbar. */
+.theme-r5 .tool-nav {
+  order: 10;
+}
+.theme-r5 .toolbar .addr label {
+  color: #000;
 }
 
-/* --- Body: bookmark bar + workpane -------------------------------------- */
+/* --- Body: bookmark bar + work pane ----------------------------------------- */
 .notes-body {
   flex: 1;
   display: flex;
   min-height: 0;
 }
 
+/* Notes 8: the slim application rail. */
 .bookmark-bar {
   width: 38px;
   flex: 0 0 38px;
@@ -298,19 +340,19 @@
   align-items: center;
   padding-top: 4px;
   gap: 4px;
+  position: relative;
+  z-index: 40;
 }
 .bm-btn {
   width: 30px;
   height: 30px;
   display: grid;
   place-items: center;
-  font-size: 15px;
+  padding: 0;
   border-radius: 4px;
   border: 1px solid transparent;
+  background: transparent;
   position: relative;
-}
-.bm-btn .glyph {
-  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.25));
 }
 .bm-btn:hover {
   border-top: 1px solid var(--hl);
@@ -322,6 +364,11 @@
 .bm-btn.active {
   border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
   background: rgba(0, 0, 0, 0.08);
+}
+.bm-btn.drop,
+.bm-big.drop {
+  outline: 2px dashed var(--sel);
+  outline-offset: -2px;
 }
 .bm-badge {
   position: absolute;
@@ -346,6 +393,85 @@
   border-bottom: 1px solid var(--hl);
   margin: 2px 0;
 }
+.bm-folder-wrap {
+  position: relative;
+}
+
+/* Classic R5: big 32px bookmark buttons and bookmark folders. */
+.bookmark-bar.bm-r5 {
+  width: 46px;
+  flex: 0 0 46px;
+  margin: 0 0 0 2px;
+  padding-top: 3px;
+  gap: 2px;
+  background: #c0c0c0;
+  border-right: 1px solid #808080;
+  box-shadow: inset -1px 0 0 #fff;
+}
+.bm-big {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  position: relative;
+}
+.bm-big:hover {
+  border-color: #fff #808080 #808080 #fff;
+}
+.bm-big.active,
+.bm-big:active {
+  border-color: #808080 #fff #fff #808080;
+  background: #d4d4d4;
+}
+.bm-r5 .bm-sep {
+  width: 34px;
+  border-top-color: #808080;
+  margin: 3px 0;
+}
+.bm-flyout {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 0;
+  min-width: 220px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--face);
+  color: var(--ink);
+  border-top: 1px solid var(--hl);
+  border-left: 1px solid var(--hl);
+  border-right: 1px solid var(--shadow-dark);
+  border-bottom: 1px solid var(--shadow-dark);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35), inset -1px -1px 0 var(--shadow);
+  padding: 2px;
+  z-index: 400;
+}
+.bm-flyout-title {
+  padding: 3px 8px 4px;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(90deg, var(--notes-blue-grad-a), var(--notes-blue-grad-b));
+  margin-bottom: 2px;
+}
+.bm-flyout-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.bm-flyout-row:hover {
+  background: var(--sel);
+  color: #fff;
+}
+.bm-flyout-empty {
+  padding: 8px;
+  color: var(--ink-muted);
+  font-style: italic;
+  white-space: normal;
+}
 
 .workpane {
   flex: 1;
@@ -355,21 +481,21 @@
   background: var(--window);
 }
 
-/* --- Tab row: the Open launcher + the window tabs ----------------------- */
+/* --- Window tabs ------------------------------------------------------------ */
 .tabs-row {
   display: flex;
   align-items: stretch;
   background: var(--face);
   border-bottom: 1px solid var(--shadow-dark);
-  /* visible overflow so the Open dropdown is not clipped */
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 30;
 }
 .tabs-row .window-tabs {
   flex: 1;
   min-width: 0;
   border-bottom: none;
 }
-
-/* --- The green "Open" launcher (Notes 8) -------------------------------- */
 .open-launcher {
   position: relative;
   align-self: center;
@@ -380,8 +506,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 19px;
-  padding: 0 8px;
+  height: 20px;
+  padding: 0 8px 0 5px;
+  font-family: var(--font-ui);
   font-size: var(--fs-sm);
   font-weight: bold;
   color: #fff;
@@ -400,17 +527,14 @@
 .open-btn:active {
   background: linear-gradient(180deg, #3c8420, #4e9a2a);
 }
-.open-ic {
-  font-size: 11px;
-}
 .open-caret {
   font-size: 8px;
 }
 .open-menu {
   position: absolute;
-  top: 21px;
+  top: 22px;
   left: 0;
-  min-width: 172px;
+  min-width: 190px;
   background: var(--face);
   border-top: 1px solid var(--hl);
   border-left: 1px solid var(--hl);
@@ -427,25 +551,20 @@
   padding: 4px 10px;
   font-size: var(--fs);
   font-weight: normal;
+  white-space: nowrap;
 }
 .open-row:hover {
   background: var(--sel);
   color: #fff;
 }
-.open-row-ic {
-  width: 16px;
-  text-align: center;
-}
 
-/* --- Window tabs -------------------------------------------------------- */
 .window-tabs {
   display: flex;
   align-items: flex-end;
-  height: 24px;
+  height: 25px;
   padding: 3px 4px 0 4px;
   gap: 2px;
   background: var(--face);
-  border-bottom: 1px solid var(--shadow-dark);
   flex: 0 0 auto;
   overflow-x: auto;
   overflow-y: hidden;
@@ -458,7 +577,7 @@
   align-items: center;
   gap: 5px;
   height: 21px;
-  padding: 0 6px 0 8px;
+  padding: 0 4px 0 7px;
   font-size: var(--fs-sm);
   white-space: nowrap;
   background: #c9c5bc;
@@ -469,7 +588,8 @@
   border-top-right-radius: 3px;
   position: relative;
   top: 1px;
-  max-width: 160px;
+  max-width: 190px;
+  flex: 0 0 auto;
 }
 .wtab .wtab-accent {
   width: 9px;
@@ -489,7 +609,6 @@
   border-top: 1px solid #fef6d0;
   border-left: 1px solid #fef6d0;
   border-right: 1px solid #c9a73a;
-  border-bottom: 1px solid #fbe793;
   z-index: 2;
 }
 .wtab .wtab-close {
@@ -497,166 +616,211 @@
   height: 14px;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: 9px;
   border-radius: 2px;
+  font-weight: normal;
 }
 .wtab .wtab-close:hover {
   background: rgba(0, 0, 0, 0.18);
 }
+/* R5 window tabs: plain gray file-folder tabs; the front one is lighter. */
+.theme-r5 .tabs-row {
+  margin: 0;
+  border-bottom: 1px solid #fff;
+  box-shadow: 0 1px 0 #808080;
+}
+.theme-r5 .window-tabs {
+  height: 24px;
+  padding-top: 2px;
+}
+.theme-r5 .wtab {
+  background: #c0c0c0;
+  border-radius: 0;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #000;
+  box-shadow: inset -1px 0 0 #808080;
+  height: 20px;
+}
+.theme-r5 .wtab.active {
+  background: #d4d4d4;
+  height: 22px;
+  top: 2px;
+  border-color: #fff #000 transparent #fff;
+  font-weight: bold;
+}
+.theme-r5 .wtab .wtab-close {
+  width: 13px;
+  height: 11px;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  border-radius: 0;
+  background: #c0c0c0;
+  font-size: 8px;
+  font-weight: bold;
+}
 
-/* --- Content host ------------------------------------------------------- */
+/* --- Window host --------------------------------------------------------------- */
 .workview {
   flex: 1;
   min-height: 0;
   display: flex;
+  position: relative;
   background: var(--window);
 }
-
-/* --- Status bar --------------------------------------------------------- */
-.statusbar {
-  display: flex;
-  align-items: stretch;
-  height: 22px;
-  background: var(--face);
-  border-top: 1px solid var(--hl);
-  flex: 0 0 auto;
-  font-size: var(--fs-sm);
-}
-.status-cell {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border-left: 1px solid var(--shadow);
-  box-shadow: inset 1px 0 0 var(--hl);
-  white-space: nowrap;
-}
-.status-cell:first-child {
-  border-left: none;
-  box-shadow: none;
-}
-.status-cell.grow {
+.tab-host {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
 }
-.status-cell .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3a8a3a;
-  box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+.tab-host[hidden] {
+  display: none;
 }
-
-/* --- Theme toggle (status bar) ------------------------------------------ */
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 18px;
-  padding: 0 7px;
-  font-family: var(--font-ui);
-  font-size: var(--fs-sm);
-  color: var(--ink);
+.window-error {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  background: var(--window);
+}
+.window-error-box {
+  max-width: 420px;
+  padding: 14px 18px;
   background: var(--face);
   border-top: 1px solid var(--hl);
   border-left: 1px solid var(--hl);
   border-right: 1px solid var(--shadow-dark);
   border-bottom: 1px solid var(--shadow-dark);
-  box-shadow: inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--face-lighter);
-  cursor: default;
-  white-space: nowrap;
 }
-.theme-toggle:active {
-  border-color: var(--shadow-dark) var(--hl) var(--hl) var(--shadow-dark);
-  box-shadow: inset 1px 1px 0 var(--shadow);
-}
-.theme-swatch {
-  width: 11px;
-  height: 11px;
-  flex: 0 0 11px;
-  border-radius: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
-  /* Notes 8 default: XP blue swatch. */
-  background: linear-gradient(135deg, #3a7ff0, #0a47bd);
-}
-.theme-r5 .theme-swatch {
-  /* Classic R5: teal swatch. */
-  background: linear-gradient(135deg, #2a8f7a, #0e5050);
+.window-error-box p {
+  margin: 8px 0 12px;
 }
 
-/* ==========================================================================
-   THEME — Classic R5 chrome overrides
-   Hard-coded XP-blue gradients that the custom properties can't reach.
-   ========================================================================== */
-.theme-r5 .titlebar {
-  background: linear-gradient(
-    180deg,
-    #1f8f7e 0%,
-    #36b39c 8%,
-    #1f8a78 38%,
-    #117561 52%,
-    #0e5d4f 90%,
-    #2a9a85 100%
-  );
-  border-bottom: 1px solid #0a4036;
+/* --- Status bar ----------------------------------------------------------------- */
+.statusbar {
+  display: flex;
+  align-items: stretch;
+  height: 22px;
+  padding: 2px 2px 1px;
+  gap: 2px;
+  background: var(--face);
+  border-top: 1px solid var(--hl);
+  flex: 0 0 auto;
+  font-size: var(--fs-sm);
+  position: relative;
+  z-index: 40;
 }
-.theme-r5 .titlebar-btn {
-  background: linear-gradient(180deg, #58c2ad 0%, #2f9a85 40%, #14735f 100%);
+/* Each cell is a sunken panel, as in the R4/R5 status bar. */
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  border-top: 1px solid var(--shadow);
+  border-left: 1px solid var(--shadow);
+  border-right: 1px solid var(--hl);
+  border-bottom: 1px solid var(--hl);
+  white-space: nowrap;
+  min-width: 0;
 }
-.theme-r5 .titlebar-btn:active {
-  background: linear-gradient(180deg, #14735f, #2f9a85);
+.status-cell.grow {
+  flex: 1;
 }
-/* Keep the classic red close button — it reads as "close" in every era. */
-.theme-r5 .tb-appicon {
-  background: radial-gradient(circle at 32% 24%, #d7f0c8 0%, #8fce6a 42%, #4e9a2a 78%, #357015 100%);
+.sb-bolt {
+  width: 26px;
+  justify-content: center;
+  padding: 0;
 }
-.theme-r5 .tb-appicon-mark {
-  text-shadow: 0 1px 1px rgba(20, 70, 10, 0.6);
+.sb-bolt.busy .px-icon {
+  animation: sb-flash 0.35s steps(2) infinite;
 }
-/* Bookmark rail goes cooler grey-teal to match the desk. */
-.theme-r5 .bookmark-bar {
-  background: linear-gradient(90deg, #aab4ac, #c0c8bd 60%, #b6bfb3);
+@keyframes sb-flash {
+  50% {
+    opacity: 0.35;
+  }
 }
-/* The Notes 8 green Open launcher already fits the classic palette; nudge it
-   slightly toward the older flatter green. */
-.theme-r5 .open-btn {
-  background: linear-gradient(180deg, #6fb53e 0%, #468a22 55%, #357414 100%);
-  border-top-color: #9ed576;
-  border-left-color: #9ed576;
+.sb-msg {
+  position: relative;
+  overflow: visible;
 }
-/* Active window tab: classic green-felt highlight instead of amber. */
-.theme-r5 .wtab.active {
-  background: linear-gradient(180deg, #e3f0cf 0%, #cfe3a8 60%, #bcd68c 100%);
-  border-top-color: #ecf6dc;
-  border-left-color: #ecf6dc;
-  border-right-color: #8fae5c;
-  border-bottom-color: #cfe3a8;
+.sb-msg-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-history {
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 3px);
+  width: min(520px, 70vw);
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--shadow-dark);
+  box-shadow: 2px -2px 6px rgba(0, 0, 0, 0.3);
+  padding: 2px 0;
+  z-index: 500;
+}
+.sb-history-row {
+  padding: 2px 8px;
+  white-space: normal;
+}
+.sb-history-row:nth-child(odd) {
+  background: var(--face-lighter);
+}
+.sb-history-time {
+  color: var(--ink-muted);
+  margin-right: 6px;
+}
+.sb-pop {
+  cursor: default;
+  min-width: 46px;
+  justify-content: center;
+}
+.sb-pop:hover,
+.sb-access:hover,
+.sb-location:hover,
+.sb-mail:hover {
+  background: var(--face-lighter);
+}
+.sb-access {
+  min-width: 28px;
+  justify-content: center;
+}
+.sb-location {
+  max-width: 220px;
+}
+.sb-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-mail.lit {
+  background: #fff5b0;
+}
+.sb-outbox {
+  color: #8a5a00;
 }
 
 /* ==========================================================================
    Mobile / responsive chrome
-   Toolbar search wraps, bookmark rail shrinks, tabs scroll, the status bar
-   wraps onto two rows on narrow phones. No horizontal page overflow.
    ========================================================================== */
 @media (max-width: 720px) {
-  /* Toolbar: let the SmartIcons + search/address wrap onto a second row. */
   .toolbar {
     height: auto;
-    min-height: 27px;
+    min-height: 28px;
     flex-wrap: wrap;
     padding: 2px 4px;
   }
   .toolbar .addr {
     flex: 1 1 100%;
-    margin-left: 0;
-    margin-top: 2px;
-    justify-content: stretch;
+    margin: 2px 0 0;
   }
-  .toolbar .addr input.tb-search {
+  .toolbar .addr input.tb-search,
+  .toolbar .addr input.tb-address {
     flex: 1 1 auto;
-    max-width: none;
+    width: auto;
   }
-
-  /* Bookmark rail: a touch narrower. */
   .bookmark-bar {
     width: 32px;
     flex: 0 0 32px;
@@ -664,15 +828,10 @@
   .bm-btn {
     width: 26px;
     height: 26px;
-    font-size: 14px;
   }
-
-  /* Window tabs already scroll horizontally; keep them from growing too tall. */
   .wtab {
     max-width: 130px;
   }
-
-  /* Status bar wraps so the cells don't push width past the viewport. */
   .statusbar {
     height: auto;
     min-height: 22px;
@@ -682,15 +841,7 @@
     flex: 1 0 50%;
   }
 }
-
-/* Very narrow phones: hand the rail back some room by hiding the separator gap
-   and tightening the title bar text. */
 @media (max-width: 480px) {
-  .titlebar-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .titlebar-btn.close {
     width: 36px;
   }

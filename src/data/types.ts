@@ -1,5 +1,5 @@
 // ============================================================================
-// Lotus Notes — domain model
+// Lotus Notes: domain model
 // Notes stores everything as "documents" inside "databases". We model each
 // database as a typed collection. These types are the shared contract every
 // application module reads and writes through the store (see store.ts).
@@ -251,13 +251,16 @@ export interface ContactGroup extends DocMeta {
 // ---------------------------------------------------------------------------
 export type TaskStatus = "not-started" | "in-progress" | "complete" | "deferred";
 
+/** The To Do form offers High, Medium ("normal"), Low and None. */
+export type TaskPriority = Priority | "none";
+
 export interface TodoTask extends DocMeta {
   id: ID;
   subject: string;
   description: string;
   start: number | null;
   due: number | null;
-  priority: Priority;
+  priority: TaskPriority;
   status: TaskStatus;
   category: string;
   completedDate: number | null;

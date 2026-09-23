@@ -1,5 +1,5 @@
 // ============================================================================
-// <Icon> — renders a pixel icon from the icon data files as a crisp inline
+// <Icon>: renders a pixel icon from the icon data files as a crisp inline
 // SVG. Runs of same-colored pixels in a row merge into one rectangle, and each
 // color becomes a single <path>, so even 32x32 art stays a handful of nodes.
 //

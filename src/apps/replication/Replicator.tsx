@@ -1,136 +1,187 @@
 // ============================================================================
-// Lotus Notes — Replicator
-// A modal dialog modeled on the classic Notes Replicator page. It lists each
-// document database with its local count and sync status, shows the last
-// replication time, and runs a two-way merge against the "server" replica via
-// the store's replicateNow action.
+// The Replicator page (a bookmark in R5, the last Workspace tab in R4). One
+// row per replicated database with a check box, its server, last run and
+// pending changes; a "Send outgoing mail" row; the Start button with per-row
+// progress; and the replication schedule.
 // ============================================================================
 
-import { useMemo, useState } from "react";
-import { Dialog } from "../../components/ui";
-import { useNotes } from "../../data/store";
+import { useState } from "react";
+import { ActionBar } from "../../components/ActionBar";
+import type { ActionItem } from "../../components/ActionBar";
+import { Icon } from "../../components/Icon";
+import type { IconName } from "../../components/Icon";
+import { useTabCommands } from "../../components/tabs";
+import { useNotes, canReachServer } from "../../data/store";
 import { useUI } from "../../data/ui";
 import { fmtDateTime } from "../../lib/format";
-import type { ReplicaSnapshot } from "../../data/types";
+import { REPL_SERVERS, replicationRunning, runReplication } from "../../shell/replicate";
+import type { ReplStep } from "../../shell/replicate";
 import "../../styles/replication.css";
 
-interface Row {
-  key: Exclude<keyof ReplicaSnapshot, "stubs">;
-  label: string;
-  icon: string;
-}
+const DB_ICON: Record<string, IconName> = { mail: "mail", discussion: "discussion" };
 
-// The databases shown in the Replicator, in Notes' usual order.
-const ROWS: Row[] = [
-  { key: "mail", label: "Mail", icon: "✉️" },
-  { key: "calendar", label: "Calendar", icon: "📅" },
-  { key: "todos", label: "To Do", icon: "✅" },
-  { key: "discussion", label: "Discussion", icon: "💬" },
-];
-
-/** Count of local docs in a collection not yet matching the server replica. */
-function pendingFor(
-  local: { id: string }[],
-  remote: { id: string }[],
-): number {
-  const remoteById = new Map<string, unknown>();
-  for (const d of remote) remoteById.set(d.id, d);
-  let pending = 0;
-  for (const doc of local) {
-    const match = remoteById.get(doc.id);
-    if (!match || JSON.stringify(match) !== JSON.stringify(doc)) pending++;
-  }
-  return pending;
+function StateCell({ step, pending }: { step?: ReplStep; pending: number }) {
+  if (!step) return <span className="rc-state muted">{pending ? "Ready" : "Up to date"}</span>;
+  if (step.state === "waiting") return <span className="rc-state muted">Waiting...</span>;
+  if (step.state === "running")
+    return (
+      <span className="rc-state">
+        <span className="repl-progress">
+          <span className="repl-progress-fill" />
+        </span>
+      </span>
+    );
+  return <span className={"rc-state" + (step.state === "error" ? " error" : "")}>{step.detail ?? "Done"}</span>;
 }
 
 export default function Replicator() {
-  const closeReplication = useUI((s) => s.closeReplication);
-  const setStatus = useUI((s) => s.setStatus);
-  const replicateNow = useNotes((s) => s.replicateNow);
-
-  // Subscribe to the collections + server so the list updates after a sync.
-  const mail = useNotes((s) => s.mail);
-  const calendar = useNotes((s) => s.calendar);
-  const todos = useNotes((s) => s.todos);
-  const discussion = useNotes((s) => s.discussion);
-  const server = useNotes((s) => s.server);
-  const lastReplicated = useNotes((s) => s.lastReplicated);
-
+  const databases = useNotes((s) => s.databases);
+  const settings = useNotes((s) => s.replSettings);
+  const setReplSettings = useNotes((s) => s.setReplSettings);
+  const replLog = useNotes((s) => s.replLog);
+  const outboxCount = useNotes((s) => s.outbox.length);
+  const location = useNotes((s) => s.user.location);
+  const pendingFor = useNotes((s) => s.pendingFor);
+  // Re-render when replicated collections change so pending counts stay live.
+  useNotes((s) => s.mail);
+  useNotes((s) => s.calendar);
+  useNotes((s) => s.todos);
+  useNotes((s) => s.discussion);
+  useNotes((s) => s.stubs);
+  const openView = useUI((s) => s.openView);
+  const [steps, setSteps] = useState<ReplStep[]>([]);
   const [busy, setBusy] = useState(false);
 
-  const locals: Record<Row["key"], { id: string }[]> = useMemo(
-    () => ({ mail, calendar, todos, discussion }),
-    [mail, calendar, todos, discussion],
-  );
+  const reachable = canReachServer(location);
+  const rows = Object.keys(REPL_SERVERS)
+    .map((id) => databases.find((d) => d.id === id))
+    .filter((d): d is NonNullable<typeof d> => !!d);
 
-  const onReplicate = () => {
-    if (busy) return;
+  const start = async (only?: string) => {
+    if (busy || replicationRunning()) return;
     setBusy(true);
-    setStatus("Replicating with server...");
-    // A short delay so the in-progress state is visible, then merge.
-    window.setTimeout(() => {
-      const { pulled, pushed } = replicateNow();
+    setSteps([]);
+    try {
+      await runReplication({
+        dbs: only ? (only === "outgoing" ? [] : [only]) : undefined,
+        sendOutgoing: only ? only === "outgoing" : undefined,
+        onStep: setSteps,
+      });
+    } finally {
       setBusy(false);
-      setStatus(`Replication complete: ${pulled} received, ${pushed} sent.`);
-    }, 450);
+    }
   };
 
-  const footer = (
-    <>
-      <span className="repl-foot-info">
-        Last replicated: {lastReplicated ? fmtDateTime(lastReplicated) : "Never"}
-      </span>
-      <span className="repl-foot-spacer" />
-      <button className="btn primary" onClick={onReplicate} disabled={busy}>
-        {busy ? "Replicating…" : "Replicate Now"}
-      </button>
-      <button className="btn" onClick={closeReplication}>
-        Close
-      </button>
-    </>
-  );
+  const stepFor = (id: string) => steps.find((s) => s.id === id);
+
+  const actions: ActionItem[] = [
+    { id: "start", label: "Start", icon: "replicator", disabled: busy, run: () => void start() },
+    { id: "send", label: "Send Outgoing Mail", icon: "send", disabled: busy, run: () => void start("outgoing") },
+    "sep",
+    { id: "outbox", label: "Open Outgoing Mail", icon: "outbox", run: () => openView("outbox") },
+  ];
+
+  useTabCommands("replicator", { refresh: () => void start() });
 
   return (
-    <Dialog title="Replicator" onClose={closeReplication} footer={footer} width={460}>
-      <div className="repl">
-        <div className="repl-server">
-          <span className="repl-server-ic">🖥️</span>
-          <div className="repl-server-meta">
-            <div className="repl-server-name">Domino Server (acme/Mail)</div>
-            <div className="repl-server-state">
-              {busy ? "Replicating…" : "Connected"}
-            </div>
+    <div className="app replicator-page">
+      <ActionBar actions={actions} />
+      <div className="repl-banner">
+        <Icon name="db-replicator" />
+        <div className="repl-banner-text">
+          <div className="repl-banner-title">Replicator</div>
+          <div className="repl-banner-sub">
+            Location: <b>{location}</b>
+            {!reachable && <span className="repl-warn"> Unable to find path to server from this location.</span>}
           </div>
-          <span className={"repl-led" + (busy ? " busy" : "")} aria-hidden />
-        </div>
-
-        <div className="repl-list">
-          <div className="repl-head">
-            <span className="repl-c-db">Database</span>
-            <span className="repl-c-count">Documents</span>
-            <span className="repl-c-status">Status</span>
-          </div>
-          {ROWS.map((row) => {
-            const local = locals[row.key];
-            const remote = server[row.key] as { id: string }[];
-            const pending = pendingFor(local, remote);
-            return (
-              <div key={row.key} className="repl-row">
-                <span className="repl-c-db">
-                  <span className="repl-row-ic">{row.icon}</span>
-                  {row.label}
-                </span>
-                <span className="repl-c-count">{local.length}</span>
-                <span
-                  className={"repl-c-status" + (pending > 0 ? " pending" : " synced")}
-                >
-                  {pending > 0 ? `${pending} pending` : "In sync"}
-                </span>
-              </div>
-            );
-          })}
         </div>
       </div>
-    </Dialog>
+      <div className="repl-table" role="table">
+        <div className="repl-thead" role="row">
+          <span className="rc-check" />
+          <span className="rc-db">Database</span>
+          <span className="rc-server">Server</span>
+          <span className="rc-last">Last Run</span>
+          <span className="rc-pending">Pending</span>
+          <span className="rc-state">Status</span>
+        </div>
+        <div
+          className={"repl-row" + (stepFor("outgoing")?.state === "running" ? " running" : "")}
+          role="row"
+          onDoubleClick={() => void start("outgoing")}
+          title="Double-click to send outgoing mail now"
+        >
+          <span className="rc-check">
+            <input
+              type="checkbox"
+              checked={settings.sendOutgoing}
+              onChange={(e) => setReplSettings({ sendOutgoing: e.target.checked })}
+              aria-label="Send outgoing mail"
+            />
+          </span>
+          <span className="rc-db">
+            <Icon name="outbox" /> Send outgoing mail
+          </span>
+          <span className="rc-server">{REPL_SERVERS.mail}</span>
+          <span className="rc-last">{replLog.outgoing ? fmtDateTime(replLog.outgoing) : ""}</span>
+          <span className="rc-pending">{outboxCount || ""}</span>
+          <StateCell step={stepFor("outgoing")} pending={outboxCount} />
+        </div>
+        {rows.map((db) => {
+          const pending = pendingFor(db.id);
+          const step = stepFor(db.id);
+          return (
+            <div
+              key={db.id}
+              className={"repl-row" + (step?.state === "running" ? " running" : "")}
+              role="row"
+              onDoubleClick={() => void start(db.id)}
+              title={`Double-click to replicate ${db.title} now`}
+            >
+              <span className="rc-check">
+                <input
+                  type="checkbox"
+                  checked={settings.enabled[db.id] !== false}
+                  onChange={(e) => setReplSettings({ enabled: { ...settings.enabled, [db.id]: e.target.checked } })}
+                  aria-label={`Replicate ${db.title}`}
+                />
+              </span>
+              <span className="rc-db">
+                <Icon name={DB_ICON[db.id] ?? "database"} /> {db.title}
+              </span>
+              <span className="rc-server">{REPL_SERVERS[db.id]}</span>
+              <span className="rc-last">{replLog[db.id] ? fmtDateTime(replLog[db.id]) : "Never"}</span>
+              <span className="rc-pending">{pending || ""}</span>
+              <StateCell step={step} pending={pending} />
+            </div>
+          );
+        })}
+      </div>
+      <fieldset className="repl-schedule">
+        <legend>Schedule</legend>
+        <label>
+          <input
+            type="checkbox"
+            checked={settings.scheduleOn}
+            onChange={(e) => setReplSettings({ scheduleOn: e.target.checked })}
+          />{" "}
+          Replicate on a schedule, every{" "}
+          <input
+            type="number"
+            className="repl-minutes"
+            min={5}
+            max={240}
+            value={settings.everyMinutes}
+            onChange={(e) => setReplSettings({ everyMinutes: Math.max(5, Math.min(240, Number(e.target.value) || 60)) })}
+            disabled={!settings.scheduleOn}
+          />{" "}
+          minutes
+        </label>
+        <div className="repl-note">
+          Scheduled replication runs from the Home and Travel locations. At the Office the server delivers mail as it
+          arrives; on the Island nothing can reach the server.
+        </div>
+      </fieldset>
+    </div>
   );
 }

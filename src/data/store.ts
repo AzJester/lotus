@@ -1,5 +1,5 @@
 // ============================================================================
-// Lotus Notes — persistent data store
+// Lotus Notes: persistent data store
 // A single Zustand store, persisted to IndexedDB, that holds every Notes
 // database plus the simulated Domino server's replicas. Modules read slices
 // and call the typed actions below. Every save stamps the document like Notes
@@ -166,8 +166,8 @@ export interface NotesState {
   addCalendarEntry: (e: CalendarEntry) => void;
   updateCalendarEntry: (id: string, patch: Partial<CalendarEntry>) => void;
   deleteCalendarEntry: (id: string) => void;
-  /** Send invitations (or reschedule notices) for a meeting you chair. */
-  sendInvitations: (entryId: string, kind?: "invitation" | "rescheduled") => SendOutcome;
+  /** Send invitations (or reschedule / cancellation notices) for a meeting you chair; `only` limits who gets it. */
+  sendInvitations: (entryId: string, kind?: "invitation" | "rescheduled" | "cancelled", only?: Person[]) => SendOutcome;
   ackAlarm: (key: string, until: number) => void;
 
   // --- contacts ---
@@ -291,8 +291,30 @@ function buildServerSnapshot(seed = buildSeed()): ReplicaSnapshot {
   };
 }
 
+/** Both replicas start from the same seed, so they agree on every shared document. */
+function agreedBase(seed: ReturnType<typeof buildSeed>, server: ReplicaSnapshot): ReplBase {
+  const base = emptyBase();
+  const local: Record<ReplCollection, DocMetaWithId[]> = {
+    mail: seed.mail,
+    calendar: seed.calendar,
+    todos: seed.todos,
+    discussion: seed.discussion,
+  };
+  for (const coll of REPL_COLLECTIONS) {
+    const onServer = new Map((server[coll] as DocMetaWithId[]).map((d) => [d.id, d]));
+    for (const d of local[coll]) {
+      const r = onServer.get(d.id);
+      if (r && (r.seq ?? 1) === (d.seq ?? 1)) base[coll][d.id] = d.seq ?? 1;
+    }
+  }
+  return base;
+}
+
+type DocMetaWithId = { id: string; seq?: number };
+
 function freshData() {
   const seed = buildSeed();
+  const server = buildServerSnapshot(seed);
   return {
     user: seed.user,
     prefs: seed.prefs,
@@ -310,11 +332,11 @@ function freshData() {
     outbox: [] as MailMessage[],
     alarmAcks: {} as Record<string, number>,
     stubs: emptyStubs(),
-    replBase: emptyBase(),
+    replBase: agreedBase(seed, server),
     replSettings: defaultReplSettings(),
     replLog: {} as Record<string, number>,
     lastReplicated: null as number | null,
-    server: buildServerSnapshot(),
+    server,
     serverQueue: [] as ServerEvent[],
     nextTrafficAt: Date.now() + 75000,
     usedContent: [] as string[],
@@ -637,7 +659,7 @@ export const useNotes = create<NotesState>()(
             calendar: s.calendar.filter((e) => e.id !== id),
             stubs: withStub(s.stubs, "calendar", [id]),
           })),
-        sendInvitations: (entryId, kind = "invitation") => {
+        sendInvitations: (entryId, kind = "invitation", only) => {
           const s = get();
           const entry = s.calendar.find((e) => e.id === entryId);
           if (!entry || !entry.invitees.length) return { queued: false, failures: [] };
@@ -652,8 +674,9 @@ export const useNotes = create<NotesState>()(
               },
           );
           get().updateCalendarEntry(entryId, { chair: self, inviteeStatus: statuses });
-          const body = `${entry.description ? entry.description + "\n\n" : ""}${meetingSummary(notice)}`;
-          return dispatch(noticeMemo(notice, self, entry.invitees, body));
+          const intro = kind === "cancelled" ? "This meeting has been cancelled." : entry.description;
+          const body = `${intro ? intro + "\n\n" : ""}${meetingSummary(notice)}`;
+          return dispatch(noticeMemo(notice, self, only?.length ? only : entry.invitees, body));
         },
         ackAlarm: (key, until) => set((s) => ({ alarmAcks: { ...s.alarmAcks, [key]: until } })),
 

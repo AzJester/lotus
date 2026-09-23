@@ -6,6 +6,7 @@
 // ============================================================================
 
 import type {
+  Attachment,
   Contact,
   ContactGroup,
   CustomFolder,
@@ -90,6 +91,14 @@ export interface SeedData {
   mailRules: MailRule[];
 }
 
+/** A small text attachment carried inline as a data URL. */
+function textFile(name: string, text: string): Attachment {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return { name, type: "text/plain", size: bytes.length, dataUrl: "data:text/plain;base64," + btoa(bin) };
+}
+
 export function buildSeed(): SeedData {
   const me: UserProfile = {
     name: "Sam Rivera",
@@ -132,6 +141,14 @@ export function buildSeed(): SeedData {
       flagged: true,
       flagColor: "yellow",
       hasAttachment: true,
+      attachments: [
+        textFile(
+          "Q3 planning agenda.txt",
+          "Q3 PLANNING SESSION\r\nThursday 10:00, Birch conference room\r\n\r\n" +
+            "1. Q2 results (Diane)\r\n2. Top three priorities per team\r\n3. Resourcing estimates\r\n" +
+            "4. Northwind renewal (Sam)\r\n5. Open issues and next steps\r\n",
+        ),
+      ],
       priority: "high",
       labels: [id("f", 1)],
     },
@@ -150,6 +167,14 @@ export function buildSeed(): SeedData {
       read: false,
       flagged: false,
       hasAttachment: true,
+      attachments: [
+        textFile(
+          "Maintenance schedule.txt",
+          "DOMINO MAINTENANCE WINDOW\r\nSaturday 02:00 to 05:00\r\n\r\n" +
+            "Mail01/Acme: offline for fix pack install\r\nApps01/Acme: address book replication\r\n" +
+            "Mail sent during the window waits in your Outgoing Mail and goes out when the server returns.\r\n",
+        ),
+      ],
       priority: "normal",
     },
     {

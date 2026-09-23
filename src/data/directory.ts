@@ -76,9 +76,11 @@ export const DIRECTORY_PEOPLE: DirectoryPerson[] = [
   }),
   person("Human Resources", "Mail-in database", "Human Resources", "x4200", {
     email: "hr@" + INTERNET_DOMAIN,
+    replies: false,
   }),
   person("Domino Administrator", "Notes/Domino administration", "Information Technology", "x4358", {
     email: "admin@" + INTERNET_DOMAIN,
+    replies: false,
   }),
 ];
 

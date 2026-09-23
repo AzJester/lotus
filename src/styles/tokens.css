@@ -1,9 +1,26 @@
 /* ==========================================================================
-   Lotus Notes — design tokens & low-level utilities
+   Lotus Notes: design tokens and low-level utilities
    The look is classic Windows 2000/XP-era beveled chrome with Notes accents:
    gray button faces, hard 1px bevels, small Tahoma/MS-Sans type, the signature
    Notes yellow memo, and the teal workspace.
    ========================================================================== */
+
+/* The UI face. Tahoma (Windows, macOS) is what Notes used; elsewhere a
+   bundled, Latin-only subset of DejaVu Sans Condensed stands in for it so
+   Linux and ChromeOS users get the same compact letterforms. License:
+   src/assets/fonts/LICENSE-DejaVu.txt. */
+@font-face {
+  font-family: "Notes UI Sans";
+  src: url("../assets/fonts/DejaVuSansCondensed.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Notes UI Sans";
+  src: url("../assets/fonts/DejaVuSansCondensed-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
 
 :root {
   /* Surfaces */
@@ -49,7 +66,7 @@
   --grid-soft: #dcd8cf;
 
   /* Type */
-  --font-ui: Tahoma, "Segoe UI", "MS Sans Serif", Geneva, Verdana, sans-serif;
+  --font-ui: Tahoma, "Notes UI Sans", "Segoe UI", Geneva, Verdana, sans-serif;
   --font-doc: "Times New Roman", Georgia, serif;
   --font-mono: "Lucida Console", "Courier New", monospace;
   --fs: 12px;
@@ -58,55 +75,55 @@
 }
 
 /* ==========================================================================
-   THEME — Classic R4/R5 (teal + grey)
-   The default look above (:root / .theme-notes8) is the Notes 8 / XP era and is
-   left untouched. The .theme-r5 class — set on both <html> and .notes-window —
-   remaps the custom properties so most components recolor automatically; a few
-   hard-coded gradients are overridden further down and in chrome.css.
+   THEME: Classic R5 (Windows 98)
+   The .theme-r5 class, set on both <html> and .notes-window, remaps the
+   custom properties to the Windows 98 "classic" scheme Notes R5 ran in:
+   #c0c0c0 button faces with white and black bevels, the navy caption, navy
+   selection, pure red unread marks, and the teal desktop behind the window.
    ========================================================================== */
 .theme-r5,
 :root.theme-r5 {
-  /* Surfaces stay a warm classic grey, very slightly cooler. */
-  --face: #c9cac4;
-  --face-light: #d8dad2;
-  --face-lighter: #e7e8e1;
-  --window: #d6dbd2; /* content background goes pale greenish-grey */
-  --memo-yellow: #f7f4d6;
+  --face: #c0c0c0;
+  --face-light: #d4d4d4;
+  --face-lighter: #e6e6e6;
+  --window: #c0c0c0;
+  --paper: #ffffff;
+  --memo-yellow: #ffffe1;
 
-  /* Bevels */
-  --hl: #fbfcf8;
-  --hl-soft: #eef0e9;
-  --shadow: #7e827b;
-  --shadow-dark: #3a3e38;
+  --hl: #ffffff;
+  --hl-soft: #dfdfdf;
+  --shadow: #808080;
+  --shadow-dark: #000000;
 
-  /* Brand / accents — XP blue becomes the classic Notes teal/green. */
-  --notes-blue: #0e4d4d; /* active title bar base */
-  --notes-blue-2: #2e7d6e;
-  --notes-blue-grad-a: #0e5050;
-  --notes-blue-grad-b: #2a8f7a;
-  --inactive-title: #7da39a;
-  --teal: #1f7a6a;
-  --teal-dark: #114a44;
-  --action-green: #cdded0; /* action bar gradient bottom */
-  --action-green-2: #e6efe6;
+  --notes-blue: #000080;
+  --notes-blue-2: #1084d0;
+  --notes-blue-grad-a: #000080;
+  --notes-blue-grad-b: #1084d0;
+  --inactive-title: #808080;
+  --teal: #008080;
+  --teal-dark: #005050;
+  --action-green: #c0c0c0;
+  --action-green-2: #c0c0c0;
 
-  /* Selection shifts from blue to teal/green. */
-  --sel: #1e7d6b;
-  --sel-soft: #cbe3da;
+  --sel: #000080;
+  --sel-soft: #d6dcee;
   --sel-text: #ffffff;
 
-  /* Links pick up the era's green-blue. */
-  --link: #006a5a;
-  --unread: #b81414;
+  --link: #0000ff;
+  --unread: #ff0000;
 
-  /* Lines */
-  --grid: #b9beae;
-  --grid-soft: #d2d6c8;
+  --grid: #c0c0c0;
+  --grid-soft: #e0e0e0;
+
+  --font-ui: "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Notes UI Sans", Arial, sans-serif;
+  --fs: 11px;
+  --fs-sm: 11px;
+  --fs-xs: 10px;
 }
 
-/* The desk behind the window: XP slate-teal in Notes 8, deeper classic teal in R5. */
+/* The desk behind the window: XP slate-teal in Notes 8, the Windows teal in R5. */
 :root.theme-r5 body {
-  background: #0f4f49;
+  background: #008080;
 }
 
 * {

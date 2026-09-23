@@ -210,3 +210,16 @@ describe("migration", () => {
     expect(next.server!.stubs).toBeDefined();
   });
 });
+
+describe("fresh replicas", () => {
+  it("start in agreement, so only server-only documents arrive", () => {
+    expect(s().pendingChanges()).toBe(0);
+    const r = s().replicate({ dbs: ["mail", "discussion"], sendOutgoing: false });
+    expect(r.ok).toBe(true);
+    const byDb = Object.fromEntries(r.dbs.map((d) => [d.db, d]));
+    expect(byDb.mail.received).toBe(1);
+    expect(byDb.mail.sent).toBe(0);
+    expect(byDb.discussion.received).toBe(1);
+    expect(byDb.discussion.sent).toBe(0);
+  });
+});

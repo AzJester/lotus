@@ -1,14 +1,16 @@
 // ============================================================================
 // Sametime chat windows. A row of small IM windows pinned to the bottom-right
 // of the Notes desktop, one per buddy in the UI store's `openChats`. Each
-// window keeps its own message log in local state, seeds with a presence line,
-// and fires a varied canned auto-reply a beat after the user sends a message —
-// enough to feel like the buddy is typing back. Styled after the Notes 8 /
-// Sametime chat window (small, beveled, glossy blue title bar).
+// window keeps its own message log, opens with a presence line, and answers
+// with a canned reply a beat after you send a message (unless the buddy is
+// offline). Closing a window saves the transcript to Chat History in the
+// mail file, as Sametime's "save chat transcripts" option did.
 // ============================================================================
 
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "../data/ui";
+import { useNotes } from "../data/store";
+import type { ChatLine } from "../data/store";
 import { fmtTime } from "../lib/format";
 import { presenceOf } from "../lib/presence";
 import "../styles/chat.css";
@@ -22,16 +24,10 @@ const REPLIES = [
   "Ha, agreed!",
   "Can you send that over?",
   "I'm in a meeting, ttyl.",
-  "👍",
-  "Good point — let's do that.",
+  ":-)",
+  "Good point, let's do that.",
   "Thanks for the heads up.",
 ];
-
-interface ChatLine {
-  who: "me" | "them" | "system";
-  text: string;
-  at: number;
-}
 
 function ChatWindow({ name, onClose }: { name: string; onClose: () => void }) {
   const status = presenceOf(name);
@@ -57,11 +53,22 @@ function ChatWindow({ name, onClose }: { name: string; onClose: () => void }) {
     };
   }, []);
 
+  const linesRef = useRef(lines);
+  linesRef.current = lines;
+  const close = () => {
+    useNotes.getState().saveChatTranscript(name, linesRef.current);
+    onClose();
+  };
+
   function send() {
     const value = text.trim();
     if (!value) return;
     setLines((prev) => [...prev, { who: "me", text: value, at: Date.now() }]);
     setText("");
+    if (status === "offline") {
+      setLines((prev) => [...prev, { who: "system", text: `${name} is offline. The message was not delivered.`, at: Date.now() }]);
+      return;
+    }
     const reply = REPLIES[sentCount.current % REPLIES.length];
     sentCount.current += 1;
     const timer = setTimeout(() => {
@@ -75,7 +82,7 @@ function ChatWindow({ name, onClose }: { name: string; onClose: () => void }) {
       <div className="chat-title">
         <span className={"chat-title-presence " + status} />
         <span className="chat-title-name" title={name}>{name}</span>
-        <span className="chat-close" title="Close chat" onClick={onClose}>✕</span>
+        <span className="chat-close" title="Close chat (the transcript is saved to Chat History)" onClick={close}>✕</span>
       </div>
       <div className="chat-log" ref={logRef}>
         {lines.map((l, i) =>
@@ -95,7 +102,7 @@ function ChatWindow({ name, onClose }: { name: string; onClose: () => void }) {
           className="chat-input"
           type="text"
           value={text}
-          placeholder="Type a message…"
+          placeholder="Type a message..."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
