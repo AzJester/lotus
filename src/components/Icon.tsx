@@ -34,7 +34,7 @@ interface Compiled {
 
 const cache = new Map<string, Compiled>();
 
-function compile(name: IconName, icon: PixelIcon): Compiled {
+function compile(name: string, icon: PixelIcon): Compiled {
   const hit = cache.get(name);
   if (hit) return hit;
   const byKey = new Map<string, string[]>();
@@ -116,3 +116,36 @@ function IconImpl({ name, tint, scale = 1, px, title, className }: IconProps) {
 
 export const Icon = memo(IconImpl);
 export default Icon;
+
+/**
+ * Render arbitrary pixel art that is not a named icon (e.g. the password
+ * dialog's hieroglyphs). `cacheKey` must be unique per artwork.
+ */
+export function PixelArt({
+  art,
+  cacheKey,
+  scale = 1,
+  className,
+}: {
+  art: PixelIcon;
+  cacheKey: string;
+  scale?: number;
+  className?: string;
+}) {
+  const c = compile("art:" + cacheKey, art);
+  const s = c.size * scale;
+  return (
+    <svg
+      className={"px-icon" + (className ? " " + className : "")}
+      width={s}
+      height={s}
+      viewBox={`0 0 ${c.size} ${c.size}`}
+      shapeRendering="crispEdges"
+      aria-hidden
+    >
+      {c.paths.map((p) => (
+        <path key={p.key} d={p.d} fill={p.key === "@" ? DEFAULT_TINT : PALETTE[p.key] ?? "#ff00ff"} />
+      ))}
+    </svg>
+  );
+}
