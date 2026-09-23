@@ -119,11 +119,15 @@ export default function SearchResults() {
 
   const maxScore = Math.max(1, ...hits.map((h) => h.score));
 
+  useEffect(() => {
+    if (query.trim()) setStatus(`${hits.length} document${hits.length === 1 ? "" : "s"} found for "${query.trim()}".`);
+  }, [hits.length, query, setStatus]);
+
   const columns: ViewColumn<Hit>[] = [
     {
       id: "score",
       title: "Relevance",
-      width: 74,
+      width: 92,
       sortable: true,
       sortValue: (h) => h.score,
       render: (h) => (
