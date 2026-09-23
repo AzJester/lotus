@@ -214,7 +214,7 @@ export function PostDocument() {
   const remove = async () => {
     if (!doc) return;
     if (!isAuthor(doc, user)) {
-      useUI.getState().setStatus(notAuthorMessage(access));
+      useUI.getState().setStatus("You are not authorized to delete that document. You can delete only documents you wrote.");
       return;
     }
     const responses = deletionSet(inDb, [doc.id]).size - 1;

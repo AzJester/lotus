@@ -662,7 +662,7 @@ export const useNotes = create<NotesState>()(
         sendInvitations: (entryId, kind = "invitation", only) => {
           const s = get();
           const entry = s.calendar.find((e) => e.id === entryId);
-          if (!entry || !entry.invitees.length) return { queued: false, failures: [] };
+          if (!entry || !(only?.length || entry.invitees.length)) return { queued: false, failures: [] };
           const self = me(s);
           const notice = noticeFor(entry, kind, self);
           const statuses = entry.invitees.map(

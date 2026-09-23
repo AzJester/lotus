@@ -294,10 +294,14 @@ export default function Calendar() {
         break;
       }
       case "ArrowLeft":
-      case "ArrowRight":
+      case "ArrowRight": {
+        // Day formats move a day; the others move through the entries.
         handled();
-        setAnchor(addDays(anchor, ev.key === "ArrowRight" ? 1 : -1));
+        const dir = ev.key === "ArrowRight" ? 1 : -1;
+        if (view === "day" || view === "twodays" || !sorted.length) setAnchor(addDays(anchor, dir));
+        else setSelectedId(sorted[i < 0 ? 0 : Math.max(0, Math.min(sorted.length - 1, i + dir))].id);
         break;
+      }
       case "PageDown":
       case "PageUp":
         handled();

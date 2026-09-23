@@ -33,6 +33,9 @@ import {
   withDate,
   withTime,
   alarmLeadText,
+  shortRange,
+  shortTime,
+  weekLabel,
 } from "./calendarModel";
 
 // All dates are local; months are 0-based (8 = September). 09/23/2026 is a Wednesday.
@@ -261,6 +264,17 @@ describe("text", () => {
     expect(alarmLeadText(60)).toBe("1 hour before");
     expect(alarmLeadText(1440)).toBe("1 day before");
     expect(alarmLeadText(0)).toBe("At the start time");
+  });
+
+  it("prints short times and week labels", () => {
+    expect(shortTime(at(8, 24, 9, 5))).toBe("9:05 AM");
+    expect(shortTime(at(8, 24, 12, 0))).toBe("12:00 PM");
+    expect(shortRange(entry({ id: "a", start: at(8, 24, 9), end: at(8, 24, 10, 30) }))).toBe("9:00 AM - 10:30 AM");
+    expect(shortRange(entry({ id: "r", type: "reminder", start: at(8, 24, 16), end: at(8, 24, 16) }))).toBe("4:00 PM");
+    // A Sunday-first week is named after its working days.
+    expect(weekLabel(periodDays("week", day(8, 23), 0))).toBe("Week 39");
+    expect(weekLabel(periodDays("twoweeks", day(8, 23), 1))).toBe("Weeks 39 - 40");
+    expect(weekLabel([])).toBe("");
   });
 
   it("categorizes by month in date order", () => {

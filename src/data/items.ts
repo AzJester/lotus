@@ -8,6 +8,7 @@
 import type {
   CalendarEntry,
   Contact,
+  ContactGroup,
   DiscussionPost,
   DocMeta,
   JournalEntry,
@@ -120,6 +121,18 @@ function contactItems(c: Contact): (NotesItem | null)[] {
   ];
 }
 
+/** A Personal Address Book group (a mailing list). */
+function groupItems(g: ContactGroup & { memberNames?: string[] }): (NotesItem | null)[] {
+  return [
+    item("Form", "Text", "Group"),
+    item("Type", "Text", "Group"),
+    item("ListName", "Text", g.name),
+    item("GroupType", "Text", "0"),
+    item("Members", "Text List", g.memberNames ?? g.memberIds, "SUMMARY NAMES"),
+    ...common(g, ""),
+  ];
+}
+
 const TASK_STATE: Record<string, string> = { "not-started": "0", "in-progress": "1", complete: "2", deferred: "3" };
 
 function todoItems(t: TodoTask): (NotesItem | null)[] {
@@ -164,7 +177,8 @@ export function notesItems(coll: DocColl, doc: unknown): NotesItem[] {
   let list: (NotesItem | null)[] = [];
   if (coll === "mail") list = mailItems(doc as MailMessage);
   else if (coll === "calendar") list = calendarItems(doc as CalendarEntry);
-  else if (coll === "contacts") list = contactItems(doc as Contact);
+  else if (coll === "contacts")
+    list = "memberIds" in (doc as object) ? groupItems(doc as ContactGroup) : contactItems(doc as Contact);
   else if (coll === "todos") list = todoItems(doc as TodoTask);
   else if (coll === "journal") list = journalItems(doc as JournalEntry);
   else if (coll === "discussion") list = discussionItems(doc as DiscussionPost);

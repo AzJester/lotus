@@ -1,3 +1,8 @@
+// ============================================================================
+// Personal Address Book helper tests: names, the A-Z index, categories,
+// addressing, groups, validation, search and the Copy Into New summary.
+// ============================================================================
+
 import { describe, expect, it } from "vitest";
 import {
   addressLines,
@@ -11,6 +16,7 @@ import {
   contactsHtml,
   displayName,
   emptyContact,
+  groupMatchesQuery,
   groupMembers,
   groupNameProblem,
   indexLetter,
@@ -121,6 +127,13 @@ describe("groups", () => {
   it("collects the members of several groups once", () => {
     const other: ContactGroup = { id: "h", name: "Clients", memberIds: ["4", "1"] };
     expect(membersOfGroups([group, other], [diane, marcus, elena]).map((c) => c.id)).toEqual(["4", "5", "1"]);
+  });
+
+  it("matches groups by name or member", () => {
+    expect(groupMatchesQuery(group, [diane, elena], "acme")).toBe(true);
+    expect(groupMatchesQuery(group, [diane, elena], "riverton")).toBe(true);
+    expect(groupMatchesQuery(group, [diane, elena], "northwind")).toBe(false);
+    expect(groupMatchesQuery(group, [], " ")).toBe(true);
   });
 
   it("checks group names", () => {

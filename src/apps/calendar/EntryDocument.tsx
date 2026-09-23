@@ -18,7 +18,7 @@ import { DocMissing, FieldRow, FieldTable, FormPage, FormSection, TextRow, useDo
 import { notesAlert, notesAsk } from "../../components/dialogs";
 import { useTab } from "../../components/tabs";
 import { useNotes } from "../../data/store";
-import { useUI } from "../../data/ui";
+import { requestClose, useUI } from "../../data/ui";
 import type { CalEntryType, CalendarEntry, InviteeStatus, Person, RecurFreq } from "../../data/types";
 import { notesName, parseAddressList } from "../../data/names";
 import { fmtDate, fmtTime, startOfDay } from "../../lib/format";
@@ -79,6 +79,11 @@ const ui = () => useUI.getState();
 function persistEntry(d: EntryDraft, me: Person, sendNow: boolean) {
   const s = useNotes.getState();
   const prev = s.calendar.find((e) => e.id === d.id);
+  if (prev && isInvited(prev, me)) {
+    // Only the chair changes an invitation; yours to keep is the alarm.
+    s.updateCalendarEntry(prev.id, { alarm: d.alarm, alarmMinutes: d.alarmMinutes });
+    return;
+  }
   const entry = fromDraft(d, { me, contacts: s.contacts, groups: s.contactGroups });
   if (!prev) {
     s.addCalendarEntry({
@@ -87,11 +92,28 @@ function persistEntry(d: EntryDraft, me: Person, sendNow: boolean) {
       inviteeStatus: undefined,
       myResponse: undefined,
     });
+    ui().setStatus(`"${entry.subject}" saved.`);
   } else {
-    const { inviteeStatus: _status, myResponse: _response, chair: _chair, ...patch } = entry;
-    s.updateCalendarEntry(d.id, patch);
+    // Responses arrive by mail while the form is open and the store stamps every save,
+    // so neither comes from the (possibly older) draft.
+    const {
+      inviteeStatus: _status,
+      myResponse: _response,
+      chair: _chair,
+      created: _created,
+      modified: _modified,
+      seq: _seq,
+      updatedBy: _by,
+      ...patch
+    } = entry;
+    const changed = (Object.keys(patch) as (keyof typeof patch)[]).some(
+      (k) => JSON.stringify(patch[k]) !== JSON.stringify(prev[k]),
+    );
+    if (changed) {
+      s.updateCalendarEntry(d.id, patch);
+      ui().setStatus(`"${entry.subject}" saved.`);
+    }
   }
-  ui().setStatus(`"${entry.subject}" saved.`);
   void afterSave(prev, entry.id, sendNow);
 }
 
@@ -103,8 +125,9 @@ function persistEntry(d: EntryDraft, me: Person, sendNow: boolean) {
 async function afterSave(prev: CalendarEntry | undefined, id: string, sendNow: boolean) {
   const me = currentUser();
   const saved = useNotes.getState().calendar.find((e) => e.id === id);
-  if (!saved || !isChair(saved, me) || !saved.invitees.length) return;
+  if (!saved || !isChair(saved, me)) return;
   if (!invitationsSent(saved)) {
+    if (!saved.invitees.length) return;
     if (sendNow || (await notesAsk("Do you want to send invitations to the invitees?", { title: "Send Invitations" }))) {
       sendNotices(id, "invitation");
     }
@@ -433,10 +456,6 @@ export function CalendarDocument() {
   };
 
   const del = async () => {
-    if (w.isNew) {
-      w.closeNow();
-      return;
-    }
     if (await deleteEntries([d.id])) w.closeNow();
   };
 
@@ -470,8 +489,10 @@ export function CalendarDocument() {
           },
         chairing && { id: "findfree", label: "Find Free Time", icon: "scheduler", run: findFreeTime },
         "sep",
-        copyInto,
-        { id: "delete", label: w.isNew ? "Cancel" : "Delete", icon: w.isNew ? "discard" : "trash", run: () => void del() },
+        !w.isNew && copyInto,
+        w.isNew
+          ? { id: "cancel", label: "Cancel", icon: "discard", run: () => void requestClose(tab.id) }
+          : { id: "delete", label: "Delete", icon: "trash", run: () => void del() },
       ]
     : [
         !invited && { id: "edit", label: "Edit", icon: "edit", run: w.beginEdit, accel: "Ctrl+E" },

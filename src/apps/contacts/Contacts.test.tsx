@@ -41,7 +41,7 @@ describe("BusinessCard", () => {
   it("shows the contact and starts a memo from the e-mail address", () => {
     render(<BusinessCard c={contact("Whitfield")} />);
     screen.getByText("Diane Whitfield");
-    screen.getByText("VP, Operations");
+    screen.getByText("VP of Sales");
     screen.getByText("Acme Corporation");
     screen.getByText("Riverton, OH 44012");
     screen.getByText("(555) 248-1190");

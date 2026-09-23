@@ -120,7 +120,16 @@ function findDoc(coll: DocColl, id: string): (DocMeta & { id: string; subject?: 
     journal: s.journal,
     discussion: s.discussion,
   };
-  return lists[coll]?.find((d) => d.id === id);
+  const found = lists[coll]?.find((d) => d.id === id);
+  if (found || coll !== "contacts") return found;
+  // Groups live in the Address Book too.
+  const g = s.contactGroups.find((x) => x.id === id);
+  if (!g) return undefined;
+  const memberNames = g.memberIds
+    .map((m) => s.contacts.find((c) => c.id === m))
+    .filter((c): c is NonNullable<typeof c> => !!c)
+    .map((c) => `${c.firstName} ${c.lastName}`.trim() || c.email);
+  return { ...g, subject: g.name, memberNames } as DocMeta & { id: string; subject?: string };
 }
 
 export async function openDocumentProperties(coll: DocColl, id: string) {

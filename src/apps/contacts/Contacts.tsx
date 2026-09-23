@@ -8,7 +8,7 @@
 // Delete marks documents, and F9 or leaving the view asks to delete them.
 // ============================================================================
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionBar } from "../../components/ActionBar";
 import type { ActionItem } from "../../components/ActionBar";
 import { Icon } from "../../components/Icon";
@@ -32,6 +32,7 @@ import {
   colleagueOf,
   compareContacts,
   displayName,
+  groupMatchesQuery,
   groupMembers,
   indexLetter,
   jumpTarget,
@@ -181,13 +182,10 @@ export default function Contacts() {
     () => (applied ? contacts.filter((c) => matchesQuery(c, applied)) : contacts),
     [contacts, applied],
   );
-  const shownGroups = useMemo(() => {
-    if (!applied) return groups;
-    const q = applied.toLowerCase();
-    return groups.filter(
-      (g) => g.name.toLowerCase().includes(q) || groupMembers(g, contacts).some((c) => matchesQuery(c, applied)),
-    );
-  }, [groups, contacts, applied]);
+  const shownGroups = useMemo(
+    () => (applied ? groups.filter((g) => groupMatchesQuery(g, contacts, applied)) : groups),
+    [groups, contacts, applied],
+  );
 
   const groupColumns = useMemo<ViewColumn<ContactGroup>[]>(
     () => [
@@ -228,10 +226,7 @@ export default function Contacts() {
   const selectedContact = isGroups ? null : contacts.find((c) => c.id === selectedId) ?? null;
   const selectedGroup = isGroups ? groups.find((g) => g.id === selectedId) ?? null : null;
 
-  const selectionIds = useCallback(
-    () => (checked.size ? [...checked] : selectedId ? [selectedId] : []),
-    [checked, selectedId],
-  );
+  const selectionIds = () => (checked.size ? [...checked] : selectedId ? [selectedId] : []);
   const selContacts = (): Contact[] => {
     if (isGroups) return [];
     const ids = new Set(selectionIds());
@@ -399,6 +394,20 @@ export default function Contacts() {
     if (choice) exportContacts(choice.scope === "selected" ? selected : all, choice.fileName);
   };
 
+  // ---- search bar ----------------------------------------------------------
+  /** Apply the search; a selection the results no longer show is dropped. */
+  const applySearch = (q: string) => {
+    setApplied(q);
+    setChecked(new Set());
+    const stillShown = isGroups
+      ? groups.some((g) => g.id === selectedId && groupMatchesQuery(g, contacts, q))
+      : contacts.some((c) => c.id === selectedId && matchesQuery(c, q));
+    if (!stillShown) {
+      setCaret(null);
+      setSelectedId(null);
+    }
+  };
+
   // ---- the A-Z index -------------------------------------------------------
   const jump = (letter: string) => {
     const target = jumpTarget(letter, shownContacts);
@@ -477,7 +486,11 @@ export default function Contacts() {
     deleteSelected: () => markForDeletion(selectionIds()),
     searchBar: () => setSearchOpen((o) => !o),
     newDocument: isGroups ? () => void newGroup() : newContact,
-    properties: selectedContact ? () => void openDocumentProperties("contacts", selectedContact.id) : undefined,
+    properties: selectedContact
+      ? () => void openDocumentProperties("contacts", selectedContact.id)
+      : selectedGroup
+        ? () => void openDocumentProperties("contacts", selectedGroup.id)
+        : undefined,
     copyAsLink: selectedContact ? () => copyContactLink(selectedContact) : undefined,
   });
 
@@ -551,7 +564,7 @@ export default function Contacts() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setApplied(query.trim());
+              if (e.key === "Enter") applySearch(query.trim());
               if (e.key === "Escape") {
                 e.stopPropagation();
                 e.preventDefault();
@@ -559,14 +572,14 @@ export default function Contacts() {
               }
             }}
           />
-          <button className="btn" onClick={() => setApplied(query.trim())}>
+          <button className="btn" onClick={() => applySearch(query.trim())}>
             Search
           </button>
           <button
             className="btn"
             onClick={() => {
               setQuery("");
-              setApplied("");
+              applySearch("");
             }}
           >
             Clear
@@ -577,6 +590,7 @@ export default function Contacts() {
       <div className="pab-viewrow">
         {isGroups ? (
           <NotesView
+            key="groups"
             viewKey="pab-groups"
             docs={shownGroups}
             getId={groupId}
@@ -599,6 +613,7 @@ export default function Contacts() {
           />
         ) : (
           <NotesView
+            key="contacts"
             viewKey={nav === "category" ? "pab-category" : "pab-contacts"}
             docs={shownContacts}
             getId={contactId}

@@ -1,3 +1,8 @@
+// ============================================================================
+// vCard tests: value escaping and folding, the 3.0 cards Export vCard writes,
+// round trips, and the 2.1 / 3.0 variations Import vCard has to read.
+// ============================================================================
+
 import { describe, expect, it } from "vitest";
 import {
   decodeQuotedPrintable,

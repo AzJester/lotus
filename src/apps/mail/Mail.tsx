@@ -151,20 +151,18 @@ export default function Mail() {
   // ---- deletion marks ------------------------------------------------------
   const markForDeletion = (ids: string[]) => {
     if (!ids.length) return;
-    setMarked((prev) => {
-      const next = new Set(prev);
-      const allMarked = ids.every((id) => next.has(id));
-      for (const id of ids) {
-        if (allMarked) next.delete(id);
-        else next.add(id);
-      }
-      setStatus(
-        allMarked
-          ? "Deletion mark removed."
-          : `${ids.length} document${ids.length === 1 ? "" : "s"} marked for deletion. Press F9 to delete.`,
-      );
-      return next;
-    });
+    const allMarked = ids.every((id) => marked.has(id));
+    const next = new Set(marked);
+    for (const id of ids) {
+      if (allMarked) next.delete(id);
+      else next.add(id);
+    }
+    setMarked(next);
+    setStatus(
+      allMarked
+        ? "Deletion mark removed."
+        : `${ids.length} document${ids.length === 1 ? "" : "s"} marked for deletion. Press F9 to delete.`,
+    );
     setChecked(new Set());
   };
 
@@ -487,7 +485,8 @@ export default function Mail() {
         onDragStart={(e, m) => {
           e.dataTransfer.setData("text/plain", m.id);
           e.dataTransfer.setData(DRAG_DOC, JSON.stringify({ coll: "mail", id: m.id, title: m.subject }));
-          e.dataTransfer.effectAllowed = "copyMove";
+          // Move onto a folder, link onto the bookmark bar.
+          e.dataTransfer.effectAllowed = "all";
         }}
         emptyText="There are no documents in this view."
         autoFocus

@@ -164,7 +164,7 @@
   user-select: text;
 }
 .pab-card {
-  width: 390px;
+  width: 420px;
   max-width: 100%;
   background: #fff;
   border: 1px solid #9fb2cb;
@@ -233,8 +233,8 @@
   line-height: 1.5;
 }
 .pab-card-addr {
-  flex: 1 1 130px;
-  min-width: 130px;
+  flex: 1 1 110px;
+  min-width: 110px;
   color: var(--ink-soft);
 }
 .pab-card-reach {
@@ -256,7 +256,7 @@
   color: var(--link);
 }
 .pab-card-extra {
-  width: 390px;
+  width: 420px;
   max-width: 100%;
   margin: 14px 0 0 2px;
   border-collapse: collapse;

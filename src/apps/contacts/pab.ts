@@ -202,6 +202,13 @@ export function matchesQuery(c: Contact, query: string): boolean {
   return words.every((w) => hay.includes(w));
 }
 
+/** Search bar matching for groups: the group name or any member. */
+export function groupMatchesQuery(g: ContactGroup, contacts: Contact[], query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return g.name.toLowerCase().includes(q) || groupMembers(g, contacts).some((c) => matchesQuery(c, query));
+}
+
 /** "Riverton, OH 44012" */
 export function cityLine(c: Pick<Contact, "city" | "state" | "zip">): string {
   const cityState = [c.city.trim(), c.state.trim()].filter(Boolean).join(", ");

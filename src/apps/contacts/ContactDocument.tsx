@@ -8,7 +8,7 @@
 // and deletes the contact (after asking) and closes the window.
 // ============================================================================
 
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { ActionBar } from "../../components/ActionBar";
 import type { ActionItem } from "../../components/ActionBar";
 import { notesAsk } from "../../components/dialogs";
@@ -69,6 +69,11 @@ export function ContactDocument() {
   const doc = useNotes((s) => s.contacts.find((c) => c.id === id));
   const contacts = useNotes((s) => s.contacts);
   const listId = useId();
+  // New contacts focus First name once, not every time the Business tab returns.
+  const focusedOnce = useRef(false);
+  useEffect(() => {
+    focusedOnce.current = true;
+  }, []);
 
   const w = useDocWindow<Contact>({
     coll: "contacts",
@@ -162,7 +167,7 @@ export function ContactDocument() {
               label: "Business",
               content: (
                 <FieldTable>
-                  {text("First name:", "firstName", w.isNew)}
+                  {text("First name:", "firstName", w.isNew && !focusedOnce.current)}
                   {text("Last name:", "lastName")}
                   {text("Title:", "title")}
                   {text("Company:", "company")}
