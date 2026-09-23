@@ -79,7 +79,7 @@ export function sendNotices(entryId: string, kind: "invitation" | "rescheduled" 
   if (!entry) return;
   const out = notes().sendInvitations(entryId, kind, only);
   const what = kind === "invitation" ? "Invitations" : kind === "rescheduled" ? "Rescheduled notices" : "Cancellation notices";
-  reportNotices(out, only?.length ? only.length : entry.invitees.length, what);
+  reportNotices(out, out.recipients ?? (only?.length ? only.length : entry.invitees.length), what);
 }
 
 /** The invitation (or latest reschedule) you received for a meeting on your calendar. */

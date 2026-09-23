@@ -200,7 +200,13 @@ export function NotesView<T>(props: NotesViewProps<T>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docs, columns, sort?.col, sort?.dir, collapsed, categorize, parentOf, getId, props.categoryOrder]);
 
-  const caretIndex = rows.findIndex((r) => r.key === caret || (r.kind === "doc" && r.id === caret));
+  let caretIndex = rows.findIndex((r) => r.key === caret || (r.kind === "doc" && r.id === caret));
+  // The current document moved to another category (Mark Complete, Categorize):
+  // follow it by its id, the part of the row key after the last "|".
+  if (caretIndex < 0 && caret?.includes("|")) {
+    const id = caret.slice(caret.lastIndexOf("|") + 1);
+    caretIndex = rows.findIndex((r) => r.kind === "doc" && r.id === id);
+  }
   const caretRow = caretIndex >= 0 ? rows[caretIndex] : null;
   const docRows = rows.filter((r): r is Extract<Row<T>, { kind: "doc" }> => r.kind === "doc");
 
@@ -235,7 +241,13 @@ export function NotesView<T>(props: NotesViewProps<T>) {
   // bar on the first one, and moves there when the current one leaves the
   // view (deleted, filed, or another folder chosen).
   useEffect(() => {
-    if (caretRow || !docRows.length || props.noAutoSelect) return;
+    if (caretRow) {
+      // Found by id under a new category: tell the owner its new row key.
+      if (caret !== caretRow.key && !(caretRow.kind === "doc" && caret === caretRow.id))
+        onCaret(caretRow.key, caretRow.kind === "doc" ? caretRow.doc : null);
+      return;
+    }
+    if (!docRows.length || props.noAutoSelect) return;
     onCaret(docRows[0].key, docRows[0].doc);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caretRow, docRows.length, caret]);
@@ -337,7 +349,9 @@ export function NotesView<T>(props: NotesViewProps<T>) {
         if (props.onDelete && selection().length) props.onDelete(selection());
         break;
       case "F9":
-        props.onRefresh?.();
+        // Without its own refresh, let View > Refresh (the window's) handle it.
+        if (!props.onRefresh) return;
+        props.onRefresh();
         break;
       default:
         if (ctrl && e.key.toLowerCase() === "a") {

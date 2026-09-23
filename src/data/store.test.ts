@@ -223,3 +223,57 @@ describe("fresh replicas", () => {
     expect(byDb.discussion.sent).toBe(0);
   });
 });
+
+describe("meeting invitations to a group", () => {
+  it("track each member (not the group, not the chair) and count people", () => {
+    const start = Date.now() + 3 * 24 * 3600 * 1000;
+    s().addCalendarEntry({
+      id: "grp-mtg",
+      type: "meeting",
+      subject: "Sales sync",
+      location: "",
+      start,
+      end: start + 3600 * 1000,
+      allDay: false,
+      description: "",
+      invitees: [{ name: "Sales Team", email: "" }],
+      category: "",
+      alarm: false,
+    });
+    const out = s().sendInvitations("grp-mtg");
+    const entry = s().calendar.find((e) => e.id === "grp-mtg")!;
+    const names = entry.inviteeStatus!.map((x) => x.person.name).sort();
+    expect(names).toEqual(["Carl Jensen", "Diane Whitfield", "Kevin O'Brien"]);
+    expect(out.recipients).toBe(3);
+  });
+
+  it("ignores responses to a notice you chair", () => {
+    const start = Date.now() + 3 * 24 * 3600 * 1000;
+    s().addCalendarEntry({
+      id: "own-mtg",
+      type: "meeting",
+      subject: "Mine",
+      location: "",
+      start,
+      end: start + 3600 * 1000,
+      allDay: false,
+      description: "",
+      invitees: [],
+      category: "",
+      alarm: false,
+    });
+    const self = { name: s().user.name, email: s().user.email };
+    const n = { type: "invitation" as const, entryId: "own-mtg", subject: "Mine", location: "", start, end: start + 3600 * 1000, chair: self };
+    s().addMail(memo({ id: "own-notice", folder: "inbox", from: self, notice: n, form: "Notice" }));
+    s().respondToInvitation("own-notice", "decline");
+    expect(s().calendar.some((e) => e.id === "own-mtg")).toBe(true);
+  });
+});
+
+describe("Send outgoing mail", () => {
+  it("records when it last ran, even with nothing waiting", () => {
+    expect(s().replLog.outgoing).toBeUndefined();
+    s().sendOutgoing();
+    expect(s().replLog.outgoing).toBeTypeOf("number");
+  });
+});

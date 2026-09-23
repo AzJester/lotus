@@ -17,6 +17,7 @@ import type { OpenTab } from "../data/ui";
 interface Note {
   id: string;
   subject: string;
+  status?: string;
 }
 
 function Form({ doc, persist }: { doc?: Note; persist: (d: Note, isNew: boolean) => void }) {
@@ -42,16 +43,20 @@ function Form({ doc, persist }: { doc?: Note; persist: (d: Note, isNew: boolean)
   );
 }
 
-function mount(tab: OpenTab, doc: Note | undefined, persist = vi.fn()) {
-  useUI.setState({ tabs: [{ id: "view:welcome", view: "welcome" }, tab], activeTab: tab.id });
-  render(
+function tree(tab: OpenTab, doc: Note | undefined, persist: (d: Note, isNew: boolean) => void) {
+  return (
     <>
       <TabContext.Provider value={{ tab: useUI.getState().tabs.find((t) => t.id === tab.id)!, active: true }}>
         <Form doc={doc} persist={persist} />
       </TabContext.Provider>
       <DialogHost />
-    </>,
+    </>
   );
+}
+
+function mount(tab: OpenTab, doc: Note | undefined, persist = vi.fn()) {
+  useUI.setState({ tabs: [{ id: "view:welcome", view: "welcome" }, tab], activeTab: tab.id });
+  render(tree(tab, doc, persist));
   return persist;
 }
 
@@ -126,5 +131,34 @@ describe("useDocWindow", () => {
     await flush();
     expect(closed).toBe(false);
     expect(useUI.getState().tabs.some((t) => t.id === tab.id)).toBe(true);
+  });
+
+  it("follows changes made elsewhere until you type, and saves nothing if you typed nothing", async () => {
+    const tab: OpenTab = { id: "doc:journal:n4", view: "journal", doc: { coll: "journal", id: "n4" } };
+    const persist = vi.fn();
+    useUI.setState({ tabs: [{ id: "view:welcome", view: "welcome" }, tab], activeTab: tab.id });
+    const { rerender } = render(tree(tab, { id: "n4", subject: "Plan", status: "open" }, persist));
+    fireEvent.click(screen.getByText("Toggle"));
+    await flush();
+    rerender(tree(tab, { id: "n4", subject: "Plan (renamed elsewhere)", status: "done" }, persist));
+    expect((screen.getByLabelText("Subject") as HTMLInputElement).value).toBe("Plan (renamed elsewhere)");
+    fireEvent.click(screen.getByText("Save"));
+    await flush();
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it("saves only the fields you changed on top of the latest stored copy", async () => {
+    const tab: OpenTab = { id: "doc:journal:n5", view: "journal", doc: { coll: "journal", id: "n5" } };
+    const persist = vi.fn();
+    useUI.setState({ tabs: [{ id: "view:welcome", view: "welcome" }, tab], activeTab: tab.id });
+    const { rerender } = render(tree(tab, { id: "n5", subject: "Plan", status: "open" }, persist));
+    fireEvent.click(screen.getByText("Toggle"));
+    await flush();
+    fireEvent.change(screen.getByLabelText("Subject"), { target: { value: "Plan v2" } });
+    // Meanwhile someone marks it done in the view.
+    rerender(tree(tab, { id: "n5", subject: "Plan", status: "done" }, persist));
+    fireEvent.click(screen.getByText("Save"));
+    await flush();
+    expect(persist).toHaveBeenCalledWith({ id: "n5", subject: "Plan v2", status: "done" }, false);
   });
 });

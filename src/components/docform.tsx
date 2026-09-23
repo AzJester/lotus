@@ -62,6 +62,8 @@ export function useDocWindow<T extends { id: string }>(opts: DocWindowOptions<T>
   const [editing, setEditing] = useState<boolean>(isNew);
   const [dirty, setDirtyState] = useState(false);
   const dirtyRef = useRef(false);
+  /** Fields changed in this window since the last save. */
+  const touched = useRef(new Set<string>());
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const optsRef = useRef(opts);
@@ -73,10 +75,11 @@ export function useDocWindow<T extends { id: string }>(opts: DocWindowOptions<T>
     setDirtyState(v);
   };
 
-  // In read mode, follow the stored document (replication, edits elsewhere).
+  // Until you type something, follow the stored document (replication, Mark
+  // Complete in the view, a drag in the calendar), in read or edit mode.
   useEffect(() => {
-    if (!editing && opts.doc && !dirtyRef.current) setDraft(opts.doc);
-  }, [opts.doc, editing]);
+    if (opts.doc && !dirtyRef.current) setDraft(opts.doc);
+  }, [opts.doc]);
 
   useEffect(() => {
     setTabTitle(tab.id, opts.title(draft));
@@ -84,21 +87,33 @@ export function useDocWindow<T extends { id: string }>(opts: DocWindowOptions<T>
   }, [draft, tab.id]);
 
   const set = (patch: Partial<T>) => {
+    for (const k of Object.keys(patch)) touched.current.add(k);
     setDraft((d) => ({ ...d, ...patch }));
     setDirty(true);
   };
 
   const save = async (): Promise<boolean> => {
     const o = optsRef.current;
-    const d = draftRef.current;
+    const wasNew = !!useUI.getState().tabs.find((t) => t.id === tab.id)?.isNew;
+    let d = draftRef.current;
+    if (!wasNew && o.doc) {
+      // Nothing typed: nothing to save.
+      if (!dirtyRef.current) return true;
+      // Apply only the fields changed here to the latest stored copy, so
+      // edits made elsewhere meanwhile are kept.
+      const changes: Record<string, unknown> = {};
+      for (const k of touched.current) changes[k] = (d as Record<string, unknown>)[k];
+      d = { ...o.doc, ...changes } as T;
+    }
     const problem = o.validate?.(d);
     if (problem) {
       await notesAlert(problem, { icon: "warning" });
       return false;
     }
-    const wasNew = !!useUI.getState().tabs.find((t) => t.id === tab.id)?.isNew;
     o.persist(d, wasNew);
     if (wasNew) useUI.getState().retargetTab(tab.id, { coll: o.coll, id: d.id });
+    touched.current.clear();
+    setDraft(d);
     setDirty(false);
     return true;
   };
@@ -119,6 +134,7 @@ export function useDocWindow<T extends { id: string }>(opts: DocWindowOptions<T>
     if (b === "Cancel") return false;
     if (b === "Yes") return save();
     setDirty(false);
+    touched.current.clear();
     const saved = optsRef.current.doc;
     if (saved) setDraft(saved);
     return true;

@@ -9,7 +9,7 @@
 // apart from your own alarm; it shows the chair and how you responded.
 // ============================================================================
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ActionBar } from "../../components/ActionBar";
 import type { ActionItem } from "../../components/ActionBar";
@@ -174,16 +174,32 @@ function MultiRow({ label, children, className }: { label: string; children: Rea
 }
 
 function DateField({ value, onChange, label }: { value: number; onChange: (ms: number) => void; label: string }) {
+  // The browser reports every keystroke of a typed year ("0002-03-15" while
+  // "2027" is being typed). Keep the text locally and only commit a full
+  // four-digit year, or the field re-renders and restarts the year at 19xx.
+  const [text, setText] = useState(Number.isFinite(value) ? dateValue(value) : "");
+  const mine = useRef(value);
+  useEffect(() => {
+    if (value === mine.current) return;
+    mine.current = value;
+    setText(Number.isFinite(value) ? dateValue(value) : "");
+  }, [value]);
   return (
     <span className="nf-field cal-date-field">
       <input
         type="date"
         className="nf-input"
         aria-label={label}
-        value={Number.isFinite(value) ? dateValue(value) : ""}
+        value={text}
         onChange={(e) => {
-          const next = withDate(Number.isFinite(value) ? value : atMinutes(Date.now(), DEFAULT_HOUR * 60), e.target.value);
-          if (Number.isFinite(next)) onChange(next);
+          const raw = e.target.value;
+          setText(raw);
+          if (!raw || Number(raw.slice(0, 4)) < 1000) return;
+          const next = withDate(Number.isFinite(value) ? value : atMinutes(Date.now(), DEFAULT_HOUR * 60), raw);
+          if (Number.isFinite(next)) {
+            mine.current = next;
+            onChange(next);
+          }
         }}
       />
     </span>
@@ -537,7 +553,7 @@ export function CalendarDocument() {
             value={d.type}
             onChange={(t) => {
               const next = retype(d, t);
-              set({ type: next.type, allDay: next.allDay, start: next.start, end: next.end });
+              set({ type: next.type, allDay: next.allDay, start: next.start, end: next.end, recurrence: next.recurrence });
             }}
           />
         )}

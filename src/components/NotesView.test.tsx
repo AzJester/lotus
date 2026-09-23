@@ -156,3 +156,41 @@ describe("NotesView", () => {
     expect(screen.getByTestId("caret").textContent).toBe("b");
   });
 });
+
+describe("NotesView categories and the current document", () => {
+  it("keeps the current document when it moves to another category", () => {
+    function Moving() {
+      const [docs, setDocs] = useState<Doc[]>(DOCS);
+      const [caret, setCaret] = useState<string | null>("Work|b");
+      return (
+        <div>
+          <button onClick={() => setDocs((d) => d.map((x) => (x.id === "b" ? { ...x, cat: "Home" } : x)))}>move</button>
+          <div data-testid="caret">{caret ?? ""}</div>
+          <NotesView<Doc>
+            viewKey="test2"
+            docs={docs}
+            getId={(d) => d.id}
+            columns={COLUMNS}
+            categorize={(d) => d.cat}
+            caret={caret}
+            onCaret={(k) => setCaret(k)}
+            checked={new Set()}
+            onChecked={() => undefined}
+            onOpen={() => undefined}
+          />
+        </div>
+      );
+    }
+    render(<Moving />);
+    expect(screen.getByTestId("caret").textContent).toBe("Work|b");
+    fireEvent.click(screen.getByText("move"));
+    expect(screen.getByTestId("caret").textContent).toBe("Home|b");
+  });
+
+  it("lets F9 through to the window when the view has no refresh of its own", () => {
+    render(<Harness />);
+    const ev = new KeyboardEvent("keydown", { key: "F9", bubbles: true, cancelable: true });
+    view().dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
+  });
+});

@@ -184,6 +184,8 @@ export function routeMemo(memo: MailMessage, ctx: RouterContext): RouteResult {
 
   for (const r of resolved) {
     if (r.email.toLowerCase() === me.email.toLowerCase()) {
+      // Inviting a group you belong to must not mail you your own notice.
+      if (memo.notice && memo.notice.chair.email.toLowerCase() === me.email.toLowerCase()) continue;
       // Mail to yourself lands in your own Inbox.
       events.push({
         kind: "deliver",

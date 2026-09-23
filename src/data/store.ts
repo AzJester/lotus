@@ -44,7 +44,7 @@ import { idbStorage } from "./idb";
 import { sanitizeHtml } from "../lib/sanitize";
 import { stampEdit, stampNew, uid as newId } from "./docs";
 import { mergeCollection, pendingCount } from "./replication";
-import { routeMemo } from "./router";
+import { expandRecipients, routeMemo } from "./router";
 import type { RouteFailure } from "./router";
 import { tickServer, DISCUSSION_DB } from "./server";
 import { applyResponse, entryFromNotice, meetingSummary, noticeFor, noticeMemo } from "./scheduling";
@@ -83,6 +83,8 @@ export interface SendOutcome {
   queued: boolean;
   /** Recipients the router could not resolve (a Delivery Failure Report follows). */
   failures: RouteFailure[];
+  /** People the notice went to once groups were expanded (meeting notices). */
+  recipients?: number;
 }
 
 export interface ChatLine {
@@ -500,6 +502,8 @@ export const useNotes = create<NotesState>()(
           const n = memo?.notice;
           if (!memo || !n) return;
           const self = me(s);
+          // Your own meeting's notices are not yours to answer.
+          if (n.chair.email.toLowerCase() === self.email.toLowerCase()) return;
           const others = [...memo.to, ...memo.cc].filter((p) => p.email.toLowerCase() !== self.email.toLowerCase());
           const reply = (type: MeetingNotice["type"], body: string, patch: Partial<MeetingNotice> = {}) => {
             const out: MeetingNotice = { ...n, type, response: undefined, comment: extra.comment, ...patch };
@@ -665,7 +669,15 @@ export const useNotes = create<NotesState>()(
           if (!entry || !(only?.length || entry.invitees.length)) return { queued: false, failures: [] };
           const self = me(s);
           const notice = noticeFor(entry, kind, self);
-          const statuses = entry.invitees.map(
+          // One status row per person: groups are expanded, the chair is never
+          // an invitee of their own meeting, and names the Directory does not
+          // know keep their row (a Delivery Failure Report explains them).
+          const people = (list: Person[]) =>
+            expandRecipients(list, s.contacts, s.contactGroups).resolved.filter(
+              (p) => p.email.toLowerCase() !== self.email.toLowerCase(),
+            );
+          const unknown = entry.invitees.filter((p) => (p as { unresolved?: boolean }).unresolved);
+          const statuses = [...people(entry.invitees), ...unknown].map(
             (p) =>
               (kind !== "rescheduled" &&
                 entry.inviteeStatus?.find((x) => x.person.email.toLowerCase() === p.email.toLowerCase())) || {
@@ -676,7 +688,8 @@ export const useNotes = create<NotesState>()(
           get().updateCalendarEntry(entryId, { chair: self, inviteeStatus: statuses });
           const intro = kind === "cancelled" ? "This meeting has been cancelled." : entry.description;
           const body = `${intro ? intro + "\n\n" : ""}${meetingSummary(notice)}`;
-          return dispatch(noticeMemo(notice, self, only?.length ? only : entry.invitees, body));
+          const to = only?.length ? only : entry.invitees;
+          return { ...dispatch(noticeMemo(notice, self, to, body)), recipients: people(to).length };
         },
         ackAlarm: (key, until) => set((s) => ({ alarmAcks: { ...s.alarmAcks, [key]: until } })),
 
@@ -742,7 +755,13 @@ export const useNotes = create<NotesState>()(
         // ------------------------------------------------------ replication
         sendOutgoing: () => {
           const s = get();
-          if (!s.outbox.length || !canReachServer(s.user.location)) return 0;
+          if (!canReachServer(s.user.location)) return 0;
+          // The Replicator's "Send outgoing mail" row shows when this last ran.
+          const replLog = { ...s.replLog, outgoing: Date.now() };
+          if (!s.outbox.length) {
+            set({ replLog });
+            return 0;
+          }
           let queue = s.serverQueue;
           let notified = s.oooNotified;
           for (const memo of s.outbox) {
@@ -750,7 +769,7 @@ export const useNotes = create<NotesState>()(
             queue = [...queue, ...r.events];
             notified = r.oooNotified;
           }
-          set({ outbox: [], serverQueue: queue, oooNotified: notified });
+          set({ outbox: [], serverQueue: queue, oooNotified: notified, replLog });
           return s.outbox.length;
         },
 

@@ -446,7 +446,7 @@ export function whenText(e: CalendarEntry): string {
 
 export function repeatText(r: Recurrence | undefined): string {
   if (!r) return "Does not repeat";
-  const unit = r.freq === "daily" ? "Daily" : r.freq === "weekly" ? "Weekly" : "Monthly";
+  const unit = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", yearly: "Yearly" }[r.freq];
   return `${unit} until ${fmtDate(r.until)}`;
 }
 
@@ -514,7 +514,10 @@ export function withDate(ms: number, value: string): number {
   const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return NaN;
   const d = new Date(ms);
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), d.getHours(), d.getMinutes()).getTime();
+  // setFullYear, not the Date constructor, which reads years 0-99 as 19xx.
+  const out = new Date(2000, 0, 1, d.getHours(), d.getMinutes());
+  out.setFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return out.getTime();
 }
 
 /** Replace the time part of `ms` (HH:MM), keeping the date. NaN when invalid. */

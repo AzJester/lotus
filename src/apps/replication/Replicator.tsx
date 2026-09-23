@@ -5,7 +5,7 @@
 // progress; and the replication schedule.
 // ============================================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionBar } from "../../components/ActionBar";
 import type { ActionItem } from "../../components/ActionBar";
 import { Icon } from "../../components/Icon";
@@ -51,6 +51,15 @@ export default function Replicator() {
   const openView = useUI((s) => s.openView);
   const [steps, setSteps] = useState<ReplStep[]>([]);
   const [busy, setBusy] = useState(false);
+  // Typed freely, checked when you leave the field (5 to 240 minutes).
+  const [minutes, setMinutes] = useState(String(settings.everyMinutes));
+  useEffect(() => setMinutes(String(settings.everyMinutes)), [settings.everyMinutes]);
+  const commitMinutes = () => {
+    const n = Math.round(Number(minutes));
+    const clamped = Number.isFinite(n) && n > 0 ? Math.max(5, Math.min(240, n)) : settings.everyMinutes;
+    setMinutes(String(clamped));
+    if (clamped !== settings.everyMinutes) setReplSettings({ everyMinutes: clamped });
+  };
 
   const reachable = canReachServer(location);
   const rows = Object.keys(REPL_SERVERS)
@@ -171,8 +180,12 @@ export default function Replicator() {
             className="repl-minutes"
             min={5}
             max={240}
-            value={settings.everyMinutes}
-            onChange={(e) => setReplSettings({ everyMinutes: Math.max(5, Math.min(240, Number(e.target.value) || 60)) })}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+            onBlur={commitMinutes}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitMinutes();
+            }}
             disabled={!settings.scheduleOn}
           />{" "}
           minutes

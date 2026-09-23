@@ -251,14 +251,16 @@ function allDaySpan(start: number, end: number): { start: number; end: number } 
  * time, appointments and meetings get a start and an end.
  */
 export function retype(e: CalendarEntry, type: CalEntryType): CalendarEntry {
-  const next: CalendarEntry = { ...e, type };
+  // Leaving Anniversary drops the yearly repeat it brought with it.
+  const leaving = e.type === "anniversary" && type !== "anniversary" && e.recurrence?.freq === "yearly";
+  const next: CalendarEntry = { ...e, type, recurrence: leaving ? undefined : e.recurrence };
   if (type === "event" || type === "anniversary") {
     const span = allDaySpan(e.start, type === "anniversary" ? e.start : e.end);
     // An anniversary comes around every year, as the Notes form set it up.
     const recurrence =
-      type === "anniversary" && !e.recurrence
+      type === "anniversary" && !next.recurrence
         ? { freq: "yearly" as const, until: new Date(span.start).setFullYear(new Date(span.start).getFullYear() + 10) }
-        : e.recurrence;
+        : next.recurrence;
     return { ...next, allDay: true, ...span, recurrence };
   }
   const start = e.allDay ? atMinutes(e.start, DEFAULT_HOUR * 60) : e.start;

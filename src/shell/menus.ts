@@ -228,8 +228,16 @@ function createMenu(): MenuItem[] {
   const tab = activeTabOf(s);
   const c = cmds();
   const editing = hasActiveEditor() && !!s.editing;
-  const discDb = tab?.view === "discussion" ? tab.db : undefined;
-  const journalDb = tab?.view === "journal" ? tab.db : undefined;
+  // New documents go into the database of the window in front: a view, one
+  // of its documents, or its About page. A document knows its own database
+  // even when its window was opened without one (Search Results, DocLinks).
+  const docDb = (c: "journal" | "discussion") =>
+    tab?.doc?.coll === c
+      ? ((notes()[c] as { id: string; db?: string }[]).find((d) => d.id === tab.doc!.id)?.db ?? tab.db)
+      : undefined;
+  const frontDb = dbOfTab(tab);
+  const discDb = docDb("discussion") ?? (frontDb?.template === "discussion" ? frontDb.id : undefined);
+  const journalDb = docDb("journal") ?? (frontDb?.template === "journal" ? frontDb.id : undefined);
   return [
     { label: "&Memo", accel: "Ctrl+M", run: () => s.requestMemo("") },
     { label: "&Calendar Entry", run: () => newDoc("calendar", "New Calendar Entry") },

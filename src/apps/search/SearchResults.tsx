@@ -23,7 +23,10 @@ interface Hit {
   key: string;
   coll: DocColl;
   id: string;
+  /** Database title (the category). */
   db: string;
+  /** Database id for journals and discussions, so new documents land there. */
+  dbId?: string;
   icon: IconName;
   title: string;
   snippet: string;
@@ -101,12 +104,12 @@ export default function SearchResults() {
     }
     for (const j of journal) {
       if (matches(j.subject, j.body, j.category))
-        add({ coll: "journal", id: j.id, db: dbTitle(j.db ?? "journal", "Personal Journal"), icon: "note", title: j.subject, snippet: snippetAround(j.body, q), date: j.modified }, j.body);
+        add({ coll: "journal", id: j.id, db: dbTitle(j.db ?? "journal", "Personal Journal"), dbId: j.db ?? "journal", icon: "note", title: j.subject, snippet: snippetAround(j.body, q), date: j.modified }, j.body);
     }
     for (const p of discussion) {
       if (matches(p.subject, p.body, p.author.name))
         add(
-          { coll: "discussion", id: p.id, db: dbTitle(p.db ?? "discussion", "Discussion"), icon: p.parentId ? "response" : "topic", title: p.subject, snippet: `${p.author.name}: ${snippetAround(p.body, q)}`, date: p.date },
+          { coll: "discussion", id: p.id, db: dbTitle(p.db ?? "discussion", "Discussion"), dbId: p.db ?? "discussion", icon: p.parentId ? "response" : "topic", title: p.subject, snippet: `${p.author.name}: ${snippetAround(p.body, q)}`, date: p.date },
           p.body,
         );
     }
@@ -153,7 +156,7 @@ export default function SearchResults() {
     { id: "date", title: "Date", width: 100, sortable: true, sortValue: (h) => h.date ?? 0, render: (h) => (h.date ? fmtListDate(h.date) : "") },
   ];
 
-  const open = (h: Hit) => openDocument({ coll: h.coll, id: h.id }, { title: h.title });
+  const open = (h: Hit) => openDocument({ coll: h.coll, id: h.id }, { title: h.title, db: h.dbId });
 
   useTabCommands("search", {
     refresh: () => {

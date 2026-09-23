@@ -140,3 +140,26 @@ describe("yearly repeats", () => {
     expect(occ).toHaveLength(5);
   });
 });
+
+describe("inviting a group you belong to", () => {
+  it("does not mail the chair their own notice", () => {
+    const entry = {
+      id: "mtg-2",
+      type: "meeting" as const,
+      subject: "All hands",
+      location: "Auditorium",
+      start: Date.UTC(2026, 8, 25, 17, 0),
+      end: Date.UTC(2026, 8, 25, 18, 0),
+      allDay: false,
+      description: "",
+      invitees: parseAddressList("All Acme"),
+      category: "",
+      alarm: false,
+    };
+    const memo = noticeMemo(noticeFor(entry, "invitation", me), me, entry.invitees, "", ctx().now);
+    const r = routeMemo(memo, ctx());
+    const toMe = r.events.some((e) => e.kind === "deliver" && e.memo.from.email === me.email && e.memo.to.some((p) => p.email === me.email));
+    expect(toMe).toBe(false);
+    expect(r.events.some((e) => e.kind === "deliver" && e.memo.from.name === "Priya Nair")).toBe(true);
+  });
+});

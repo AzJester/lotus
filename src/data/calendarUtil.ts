@@ -14,8 +14,14 @@ export function advance(ms: number, freq: RecurFreq, n: number): number {
   const d = new Date(ms);
   if (freq === "daily") d.setDate(d.getDate() + n);
   else if (freq === "weekly") d.setDate(d.getDate() + n * 7);
-  else if (freq === "yearly") d.setFullYear(d.getFullYear() + n);
-  else d.setMonth(d.getMonth() + n);
+  else {
+    // Monthly and yearly repeats keep the day of the month, falling back to
+    // the last day of a shorter month (Jan 31 -> Feb 28, Feb 29 -> Feb 28).
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + n * (freq === "yearly" ? 12 : 1));
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  }
   return d.getTime();
 }
 

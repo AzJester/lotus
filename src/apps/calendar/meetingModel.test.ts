@@ -7,6 +7,7 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarEntry, InviteeStatus, Person } from "../../data/types";
 import { busySlots, overlaps } from "../../data/scheduling";
+import { advance } from "../../data/calendarUtil";
 import type { Slot } from "../../data/scheduling";
 import {
   blankEntry,
@@ -231,5 +232,35 @@ describe("entry drafts", () => {
     expect(validateEntry({ ...ok, type: "reminder", end: ok.start })).toBeNull();
     expect(validateEntry({ ...ok, allDay: true, start: day(8, 24), end: day(8, 23) })).toMatch(/end date/);
     expect(validateEntry({ ...ok, recurrence: { freq: "daily", until: day(8, 20) } })).toMatch(/repeat/);
+  });
+});
+
+describe("retype and repeats", () => {
+  const base = {
+    id: "e1",
+    type: "appointment" as const,
+    subject: "x",
+    location: "",
+    start: new Date(2027, 0, 31, 9, 0).getTime(),
+    end: new Date(2027, 0, 31, 10, 0).getTime(),
+    allDay: false,
+    description: "",
+    invitees: [],
+    category: "",
+    alarm: false,
+  };
+  it("gives a new anniversary a yearly repeat and takes it away again", () => {
+    const ann = retype(base, "anniversary");
+    expect(ann.recurrence?.freq).toBe("yearly");
+    expect(retype(ann, "appointment").recurrence).toBeUndefined();
+    expect(retype(ann, "event").recurrence).toBeUndefined();
+  });
+  it("keeps monthly repeats on the last day of shorter months", () => {
+    const days = [1, 2, 3].map((n) => new Date(advance(base.start, "monthly", n)));
+    expect(days.map((d) => [d.getMonth(), d.getDate()])).toEqual([
+      [1, 28],
+      [2, 31],
+      [3, 30],
+    ]);
   });
 });
